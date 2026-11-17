@@ -1,8 +1,10 @@
 # RBLX2016 Wasm port — status
 
-## Milestone: Doomspire is playable in the browser
+## Milestone: bundled places are playable in the browser
 
-- `Doomspire Brickbattle.rbxl` (binary RBXL) deserializes: 3,367 workspace parts.
+- Bundled `.rbxl`/`.rbxlx` places from `web/places/` are listed automatically
+  in the login menu. The original Doomspire smoke test had 3,367 workspace
+  parts.
 - The 2016 GL renderer starts and renders frames through WebGL2.
 - The real 2016 `ControlScript` and `CameraScript` run: WASD moves the avatar,
   right-drag rotates the camera, and physics keeps the character on the map.
@@ -22,15 +24,61 @@
   cursor and the CSS cursor is hidden while playing.
 - The client's own `LoadingScript.lua` runs and draws the loading screen
   (tiled `darkLoadingTexture.png`, rotating `loadingCircle.png`, SourceSans
-  text). `rblx_start_place` now only brings up the engine and the loading GUI;
-  JS waits until `rblx_loading_gui_ready` then calls `rblx_load_place`, so the
-  stock screen is visible while the place deserializes and stays until the
-  local character exists (`game.Loaded`). The HTML splash below is only used
-  before the engine module has painted.
-- Menu, drag/drop place loader, loading overlay and WebGL2 check work. The
-  in-game screen is the engine canvas only — no HTML hint bar and no HTML Leave
-  button; controls are listed on the login page. Leaving goes through the
-  engine's Settings → Leave Game page, which uses the `Exit` verb.
+  text). `rblx_start_place` only brings up the engine and the loading GUI; JS
+  keeps the login shell visible until `rblx_loading_gui_ready`, then hides it
+  and calls `rblx_load_place`. The stock screen is the only loading UI while
+  the place deserializes and stays until the local character exists
+  (`game.Loaded`). The browser shell has no loading screen of its own.
+- Chat uses the stock `Chat.lua` and `Topbar`. The local Play Solo player is a
+  non-guest (positive UserId and the login username), so `ChatMode` is
+  `TextAndMenu`, the chat icon is in the topbar, and sending a message renders
+  the local chat line. Client-side Lua chat filtering is left off.
+- Large places no longer block the browser tab while loading. `rblx_frame`
+  pauses rendering while the place Write task holds the DataModel lock; the
+  load continues on scheduler threads. Load-task exceptions are caught and
+  always set `g_placeLoaded`, so a bad place cannot wedge `LegacyLock`.
+  `Attachment` now accepts value objects as children, so newer place files with
+  `Vector3Value` attachments deserialize. `main.cpp` logs a `load phases`
+  breakdown.
+- Pokemon Brick Bronze (258,416 instances / 163,694 Parts) now deserializes and
+  reaches `game.Loaded` without the `Attachments can't have children` error;
+  the tab stays responsive. The place itself is still broken under the 2016
+  scripts (its map stays in storage, no character spawns), which is expected
+  for newer content.
+- On phones and tablets the shell enables the stock 2016 touch UI: a
+  `Thumbstick`/`DPad`/`Thumbpad`, `TouchJump`, touch camera, touch topbar,
+  Backpack/chat touch buttons and `ContextActionTouch` actions. Touch devices
+  set `UserInputService.TouchEnabled=true` with mouse/keyboard disabled;
+  `TouchInputService` receives browser `touchstart/move/end/cancel` through
+  `rblx_touch_event`. The canvas has `touch-action:none`, and held touches are
+  released on blur/visibility loss. Touchscreen laptops with a fine pointer
+  stay on keyboard/mouse.
+- Mobile text entry has no virtual-keyboard bridge yet; chat/TextBox input
+  needs a physical keyboard. Movement, camera, jump, tools and menus are
+  touch-enabled.
+- Right-drag camera no longer snaps when the button is pressed: coalesced
+  pre-click movement is flushed before MouseButton2, pointer-lock cursor-warp
+  deltas are ignored, and the first locked move plus a short post-lock window
+  are dropped.
+- The stock Settings menu has all four tabs (Settings, Report, Help, Record).
+  Record works: **Take Screenshot** downloads a PNG, **Record Video** downloads
+  a WebM, the topbar Stop Recording icon follows the recording state, and
+  `Print Screen` / `F12` are wired to capture/record. **Fullscreen** (row or
+  `F11`) uses the browser Fullscreen API and syncs `GameBasicSettings`. Graphics
+  Mode/Quality are the stock controls; they update
+  `GameSettings.SavedQualityLevel` and `CRenderSettingsItem.QualityLevel`.
+- Offline limits: recorded video is canvas-only (no audio), the Record page's
+  YouTube upload option saves locally, and Report Abuse cannot submit to
+  Roblox without a backend.
+- Menu, drag/drop place loader and WebGL2 check work. The Places list is
+  populated from `GET /places`, which reads every `.rbxl`/`.rbxlx` in
+  `web/places/`; Refresh re-reads the folder, so games can be swapped without
+  editing code. The login page's **Unlock FPS** checkbox clears the engine's
+  30 FPS throttle (`DataModel::throttleAt30Fps`) and is remembered in
+  localStorage. The in-game screen is the engine canvas only — no HTML hint
+  bar, no HTML loading screen and no HTML Leave button; controls are listed on
+  the login page. Leaving goes through the engine's Settings → Leave Game
+  page, which uses the `Exit` verb.
 - `main.cpp` registers a `BoundVerb("Exit")` (the native client provides it in
   `WindowsClient/GameVerbs.cpp`) that asks the browser shell to leave. The shell
   reloads the page instead of re-initializing the engine in place, which avoids
@@ -104,6 +152,12 @@
   the player scripts. Rendering itself runs outside the job arbiter. `dt` is
   clamped to 0.1 s rather than replaced with 1/60 so tweens and animations keep
   real time on slow frames.
+- The local player is created with a positive UserId and the login username.
+  `Player::setName` requires `WritePlayer`, so the rename runs under
+  `Security::Impersonator(Replicator_)`; without it the load Write task throws
+  an empty security exception, the scheduler removes the job before the
+  `LegacyLock` handshake, and the main thread freezes on the stock loading
+  screen with `g_placeLoaded` never set.
 - Keyboard, mouse-move and mouse-button events are forwarded to
   `UserInputService::fireInputEvent`; `rblx_force_character` loads the avatar
   through `DataModel::submitTask`. Tools and HopperBins are owned by the stock
@@ -201,4 +255,5 @@ export ASSET_PLACE_ID=1818      # optional, for place-scoped assets
 python3 web/serve.py 8080
 ```
 
-Open `http://127.0.0.1:8080/`, pick Doomspire, press Play.
+Open `http://127.0.0.1:8080/`, pick a bundled place (or drop a `.rbxl` into
+`web/places/` and press Refresh), press Play.

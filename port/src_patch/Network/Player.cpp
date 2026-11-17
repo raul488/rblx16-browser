@@ -934,7 +934,6 @@ void Player::onCharacterDied()
 	{
 		calculateNextSpawnLocation(ServiceProvider::findServiceProvider(this));
 		if (TimerService* timer = ServiceProvider::create<TimerService>(this)) {
-			std::fprintf(stderr, "RBLX2016: scheduling auto character spawn\n");
 			timer->delay(boost::bind(&Player::loadCharacter, shared_from(this), true, ""), 5.0);
 		}
 	}
@@ -1936,7 +1935,6 @@ void Player::checkContextReadyToSpawnCharacter() {
 
 void Player::loadCharacter(bool inGame, std::string preferedSpawnName)
 {
-	std::fprintf(stderr, "RBLX2016: loadCharacter start inGame=%d\n", (int)inGame);
 	checkContextReadyToSpawnCharacter();
 
 	shared_ptr<ModelInstance> model;
@@ -1991,7 +1989,6 @@ void Player::loadCharacter(bool inGame, std::string preferedSpawnName)
 	}
 
 
-	std::fprintf(stderr, "RBLX2016: loadCharacter model=%p parts=%d\n", (void*)pModel, pModel ? pModel->countDescendantsOfType<PartInstance>() : 0);
 	Humanoid* humanoid = Humanoid::modelIsCharacter(pModel);
 	if (!DFFlag::UseStarterPlayerCharacter && !humanoid){
 		throw std::runtime_error("character3.rbxm should contain a humanoid");
@@ -2121,13 +2118,11 @@ void Player::loadCharacter(bool inGame, std::string preferedSpawnName)
 	Instance::propArchivable.setValue(model.get(), false);
 
 	//entry.addValue("setCharacter");
-	std::fprintf(stderr, "RBLX2016: loadCharacter setCharacter\n");
 	setCharacter(model.get());						// old character will be deleted here
 
 	//entry.addValue("setParent");
 	Workspace* workspace = ServiceProvider::find<Workspace>(this);
 	model->setParent(workspace);					// scripts start running
-	std::fprintf(stderr, "RBLX2016: loadCharacter parented to workspace\n");
 
 	// Note: We load character appearance *after* adding to the DataModel so that CharacterAppearance::apply 
 	//       knows that we are backend processing.

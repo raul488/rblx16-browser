@@ -7,9 +7,10 @@ provide that.  Run from anywhere:
 
     python3 web/serve.py            # http://127.0.0.1:8080
 
-It also proxies rbxassetid:// lookups to Roblox assetdelivery and caches the
-bytes under web/asset-cache, so places can use remote textures, meshes, sounds
-and animations without hitting CORS in the browser.
+It also lists `web/places/*.rbxl` at `/places` for the menu, and proxies
+rbxassetid:// lookups to Roblox assetdelivery and caches the bytes under
+web/asset-cache, so places can use remote textures, meshes, sounds and
+animations without hitting CORS in the browser.
 """
 import http.server
 import json
@@ -22,6 +23,7 @@ import urllib.parse
 import urllib.request
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+PLACES_DIR = os.path.join(ROOT, "places")
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 ASSET_CACHE = os.path.join(ROOT, "asset-cache")
 ASSET_DELIVERY = os.environ.get(
@@ -57,6 +59,31 @@ def current_cookie():
 def cookie_status():
     token, source = current_cookie()
     return {"set": bool(token), "source": source}
+
+
+def list_places():
+    """Return the bundled place files for the login list."""
+    try:
+        names = sorted(os.listdir(PLACES_DIR), key=str.lower)
+    except OSError:
+        return []
+    places = []
+    for name in names:
+        if not name.lower().endswith((".rbxl", ".rbxlx")):
+            continue
+        path = os.path.join(PLACES_DIR, name)
+        if not os.path.isfile(path):
+            continue
+        try:
+            size = os.path.getsize(path)
+        except OSError:
+            continue
+        places.append({
+            "name": os.path.splitext(name)[0],
+            "file": name,
+            "bytes": size,
+        })
+    return places
 
 
 def normalize_cookie(value):
@@ -118,6 +145,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         path = urllib.parse.urlparse(self.path).path.lower()
         if path == "/cookie":
             return self.send_json(cookie_status())
+        if path in ("/places", "/places/"):
+            return self.send_json(list_places())
         if path in ("/asset", "/asset/"):
             return self.serve_asset()
         return super().do_GET()

@@ -6,6 +6,7 @@
  */
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 #include <sstream>
 #include <string>
 #include <memory>
@@ -31,6 +32,9 @@
 #include "v8datamodel/GuiBase2d.h"
 #include "v8datamodel/Hopper.h"
 #include "v8datamodel/HttpService.h"
+#include "v8datamodel/GameSettings.h"
+#include "v8datamodel/GameBasicSettings.h"
+#include "v8datamodel/TouchInputService.h"
 #include "v8tree/Verb.h"
 #include "FastLog.h"
 #include "v8datamodel/Tool.h"
@@ -63,6 +67,8 @@ namespace {
     std::atomic<bool> g_gameLoadClockStarted(false);
     std::chrono::steady_clock::time_point g_placeLoadedAt;
     std::chrono::steady_clock::time_point g_loadStart;
+    bool g_recordingVideo = false;
+    bool g_touchEnabled = false;
 }
 
 // Mirrors the desktop client: core-script print/warn and Lua errors go to the log.
@@ -78,9 +84,10 @@ extern "C" {
 
 int rblx_load_place();
 
-EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, const char* username, const char* assetBase) {
+EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, const char* username, const char* assetBase, int touchEnabled) {
     if (!data || size <= 0) return -1;
     if (username && *username) g_username = username;
+    g_touchEnabled = touchEnabled != 0;
     g_lastError = 0;
     g_placeParseStarted.store(false);
     g_placeLoaded.store(false);
@@ -103,6 +110,10 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
         // CameraScript, so right-drag look and zoom do nothing.
         FLog::SetValue("UseInGameTopBar", "true");
         FLog::SetValue("UserAllCamerasInLua", "true");
+        // Dismiss the stock loading screen on game.Loaded. Without this the
+        // script waits for ContentProvider's queue to drain, which can stall on
+        // missing/offline content in large places.
+        FLog::SetValue("UseGameLoadedInLoadingScript", "true");
         // The adaptive physics throttle exists to shed simulation work on
         // bandwidth/CPU-limited clients, but its auto mode reacts to scheduler
         // jitter and randomly halves the simulation rate even at 60 FPS. This
@@ -116,6 +127,25 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
         // native client provides in WindowsClient/GameVerbs.cpp.
         new RBX::BoundVerb(g_dataModel.get(), "Exit", [](RBX::VerbContainer*) {
             g_exitRequested.store(true);
+        });
+        // The native client provides these verbs in WindowsClient/GameVerbs.cpp.
+        // The browser shell owns the actual capture/download and fullscreen.
+        new RBX::BoundVerb(g_dataModel.get(), "Screenshot", [](RBX::VerbContainer*) {
+            emscripten_run_script("window.rblxScreenshot && window.rblxScreenshot()");
+        });
+        new RBX::BoundVerb(g_dataModel.get(), "RecordToggle", [](RBX::VerbContainer*) {
+            if (g_recordingVideo) {
+                emscripten_run_script("window.rblxRecordStop && window.rblxRecordStop()");
+                g_recordingVideo = false;
+                RBX::GameSettings::singleton().videoRecordingSignal(false);
+            } else if (emscripten_run_script_int(
+                           "window.rblxRecordStart ? (window.rblxRecordStart() ? 1 : 0) : 0")) {
+                g_recordingVideo = true;
+                RBX::GameSettings::singleton().videoRecordingSignal(true);
+            }
+        });
+        new RBX::BoundVerb(g_dataModel.get(), "ToggleFullScreen", [](RBX::VerbContainer*) {
+            emscripten_run_script("window.rblxToggleFullscreen && window.rblxToggleFullscreen()");
         });
         if (assetBase && *assetBase) {
             if (RBX::ContentProvider* contentProvider = RBX::ServiceProvider::find<RBX::ContentProvider>(g_dataModel.get()))
@@ -161,11 +191,15 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
     place.swap(g_pendingPlace);
     try {
         g_dataModel->submitTask([place](RBX::DataModel* dm) {
+          auto doLoad = [&]() {
             RBX::Security::Impersonator impersonate(RBX::Security::LocalGUI_);
+            auto phaseStart = std::chrono::steady_clock::now();
             std::stringstream stream(place);
             Serializer serializer;
             serializer.load(stream, dm);
+            auto afterSerialize = std::chrono::steady_clock::now();
             dm->processAfterLoad();
+            auto afterLoad = std::chrono::steady_clock::now();
             // Places serialize HttpService with HttpEnabled=false. Turn it on
             // for this local session so scripts reading the flag see the truth
             // (checkEverything also bypasses the gate under Emscripten).
@@ -182,13 +216,35 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
             enableHttp(dm);
             dm->getWorkspace()->createTerrain();
             dm->workspaceLoadedSignal();
+            auto afterTerrain = std::chrono::steady_clock::now();
             if (RBX::Network::Players* players = dm->find<RBX::Network::Players>()) {
-                if (!players->getLocalPlayerDangerous())
-                    players->createLocalPlayer(0, false);
+                if (!players->getLocalPlayerDangerous()) {
+                    // A non-test UserId keeps the player out of guest chat mode:
+                    // getChatMode() returns Menu for negative ids, which hides
+                    // the stock chat icon and chat window.
+                    players->createLocalPlayer(1, false);
+                    RBX::Network::Player* lp =
+                        RBX::Instance::fastDynamicCast<RBX::Network::Player>(players->getLocalPlayerDangerous());
+                    if (lp) {
+                        // Player::setName requires WritePlayer; the stock test
+                        // player path does this under Replicator impersonation.
+                        RBX::Security::Impersonator impersonate(RBX::Security::Replicator_);
+                        lp->setName(g_username);
+                    }
+                }
             }
             if (RBX::UserInputService* uis = dm->find<RBX::UserInputService>()) {
-                uis->setKeyboardEnabled(true);
-                uis->setMouseEnabled(true);
+                if (g_touchEnabled) {
+                    uis->setTouchEnabled(true);
+                    uis->setMouseEnabled(false);
+                    uis->setKeyboardEnabled(false);
+                    RBX::ServiceProvider::create<RBX::TouchInputService>(dm);
+                    RBX::StandardOut::singleton()->print(RBX::MESSAGE_INFO,
+                        "RBLX2016: touch controls enabled");
+                } else {
+                    uis->setKeyboardEnabled(true);
+                    uis->setMouseEnabled(true);
+                }
             }
 
             RBX::Workspace* ws = dm->getWorkspace();
@@ -218,13 +274,36 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
                 ws->getCamera()->setCameraCoordinateFrame(cf);
             }
 
+            auto afterPlayer = std::chrono::steady_clock::now();
             dm->startCoreScripts(true);
+            auto afterScripts = std::chrono::steady_clock::now();
+            auto ms = [](const std::chrono::steady_clock::time_point& a,
+                         const std::chrono::steady_clock::time_point& b) {
+                return std::chrono::duration<double, std::milli>(b - a).count();
+            };
+            RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+                "RBLX2016: load phases serialize=%.0f afterLoad=%.0f terrain=%.0f player=%.0f scripts=%.0f ms",
+                ms(phaseStart, afterSerialize), ms(afterSerialize, afterLoad),
+                ms(afterLoad, afterTerrain), ms(afterTerrain, afterPlayer),
+                ms(afterPlayer, afterScripts));
 
             double loadMs = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - g_loadStart).count();
             RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
-                "RBLX2016: loaded place (%d bytes) in %.0f ms, workspace direct parts=%d, player=%s",
-                (int)place.size(), loadMs, static_cast<int>(parts), g_username.c_str());
-            g_placeLoaded.store(true);
+                "RBLX2016: loaded place (%d bytes) in %.0f ms, workspace parts=%d, instances=%d, player=%s",
+                (int)place.size(), loadMs, static_cast<int>(parts), dm->getNumInstance(), g_username.c_str());
+          };
+          try {
+              doLoad();
+          } catch (const std::exception& e) {
+              g_lastError = 1;
+              RBX::StandardOut::singleton()->printf(RBX::MESSAGE_ERROR,
+                  "RBLX2016: place load task failed: %s", e.what());
+          } catch (...) {
+              g_lastError = 1;
+              RBX::StandardOut::singleton()->printf(RBX::MESSAGE_ERROR,
+                  "RBLX2016: place load task failed");
+          }
+          g_placeLoaded.store(true);
         }, RBX::DataModelJob::Write);
         return 0;
     } catch (const std::exception& e) {
@@ -240,6 +319,15 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
 
 EMSCRIPTEN_KEEPALIVE void rblx_frame() {
     rblx_audio_pump();
+    if (g_exitRequested.exchange(false))
+        emscripten_run_script("window.rblxLeaveGame && window.rblxLeaveGame()");
+    // The place Write task holds the DataModel Write lock while it
+    // deserializes and joins. Waiting for that lock here blocks the browser
+    // main thread (and the tab) for the whole load. The load runs on scheduler
+    // threads, so skip rendering until it finishes; the stock LoadingScript
+    // frame stays on screen and the tab remains responsive.
+    if (g_placeParseStarted.load() && !g_placeLoaded.load())
+        return;
     if (g_dataModel) {
         static RBX::Time lastRender = RBX::Time::now<RBX::Time::Fast>();
         RBX::Time now = RBX::Time::now<RBX::Time::Fast>();
@@ -261,17 +349,33 @@ EMSCRIPTEN_KEEPALIVE void rblx_frame() {
             bool timedOut = std::chrono::duration<double>(std::chrono::steady_clock::now() - g_placeLoadedAt).count() > 8.0;
             if (hasCharacter || timedOut) {
                 g_gameLoaded.store(true);
+                RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+                    "RBLX2016: game loaded (character=%d timeout=%d)", (int)hasCharacter, (int)timedOut);
                 g_dataModel->setIsGameLoaded(true);
             }
         }
     }
-    if (g_exitRequested.exchange(false))
-        emscripten_run_script("window.rblxLeaveGame && window.rblxLeaveGame()");
     if (g_view) { g_view->frame(); g_frameCount++;  }
 }
 
 EMSCRIPTEN_KEEPALIVE void rblx_resize(int w, int h) {
     if (g_view) g_view->resize(w, h);
+}
+
+// Browser fullscreen changes are asynchronous; keep the engine's Fullscreen
+// setting in sync when the user enters or leaves via the browser UI.
+EMSCRIPTEN_KEEPALIVE void rblx_set_fullscreen(int on) {
+    RBX::GameBasicSettings::singleton().setFullScreen(on != 0);
+}
+
+// Optional main-page setting: the 2016 scheduler throttles physics/rendering
+// to 30 FPS by default. Clearing the throttle lets the browser rAF rate drive
+// the frame loop.
+EMSCRIPTEN_KEEPALIVE void rblx_set_unlock_fps(int on) {
+    RBX::DataModel::throttleAt30Fps = (on == 0);
+    RBX::TaskScheduler::singleton().DataModel30fpsThrottle = (on == 0);
+    RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+        "RBLX2016: FPS cap %s", on ? "unlocked" : "30 FPS");
 }
 
 EMSCRIPTEN_KEEPALIVE int rblx_has_view() { return g_view ? 1 : 0; }
@@ -343,6 +447,20 @@ EMSCRIPTEN_KEEPALIVE void rblx_mouse_move(int x, int y, int dx, int dy) {
         G3D::Vector3(static_cast<float>(x), static_cast<float>(y), 0),
         G3D::Vector3(static_cast<float>(dx), static_cast<float>(dy), 0), g_dataModel.get());
     uis->fireInputEvent(event, NULL);
+}
+
+EMSCRIPTEN_KEEPALIVE void rblx_touch_event(int id, float x, float y, int state) {
+    if (!g_dataModel || state < 0 || state > 3) return;
+    RBX::TouchInputService* service =
+        RBX::ServiceProvider::find<RBX::TouchInputService>(g_dataModel.get());
+    if (!service) {
+        service = RBX::ServiceProvider::create<RBX::TouchInputService>(g_dataModel.get());
+    }
+    if (!service) return;
+    service->addTouchToBuffer(
+        reinterpret_cast<void*>(static_cast<uintptr_t>(id + 1)),
+        G3D::Vector3(x, y, 0),
+        static_cast<RBX::InputObject::UserInputState>(state));
 }
 
 EMSCRIPTEN_KEEPALIVE void rblx_stop() {

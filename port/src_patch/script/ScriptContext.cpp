@@ -2833,7 +2833,6 @@ void ScriptContext::addScript(weak_ptr<BaseScript> script, ScriptStartOptions st
 		FASTLOGS(FLog::ScriptContextAdd, "ScriptContext::addScript -- %s", locked->getName().c_str());
 
 		ScriptStart scriptStart = { locked, startOptions };
-		std::fprintf(stderr, "RBLX2016: addScript %s (%s) disabled=%d\n", locked->getName().c_str(), locked->getClassName().c_str(), (int)scriptsDisabled);
 		startScript(scriptStart);
 	}
 }
@@ -3173,7 +3172,6 @@ void ScriptContext::startScript(ScriptStart scriptStart)
 		return;
 
 	BaseScript::Code code = script->requestCode();
-	std::fprintf(stderr, "RBLX2016: startScript %s (%s) loaded=%d disabled=%d\n", script->getName().c_str(), script->getClassName().c_str(), (int)code.loaded, (int)scriptsDisabled);
 	if (!code.loaded)
 	{
 		return;
@@ -3283,25 +3281,19 @@ void ScriptContext::startScript(ScriptStart scriptStart)
 			}
 			else
 			{
-				std::fprintf(stderr, "RBLX2016: startScript before starting %s\n", script->getName().c_str());
 				script->starting(thread);
-				std::fprintf(stderr, "RBLX2016: startScript before resume %s\n", script->getName().c_str());
 				resume(safeThread, 0);
-				std::fprintf(stderr, "RBLX2016: startScript after resume %s\n", script->getName().c_str());
 			}
 
 			// balance the thread's stack
 			lua_resetstack(thread, 0);
-			std::fprintf(stderr, "RBLX2016: startScript before try end %s\n", script->getName().c_str());
 		}
-		std::fprintf(stderr, "RBLX2016: startScript after try block %s\n", script->getName().c_str());
 	}
 	catch (RBX::base_exception&)
 	{
 		startScriptReentrancy--;
 		throw;
 	}
-	std::fprintf(stderr, "RBLX2016: startScript end\n");
 	startScriptReentrancy--;
 }
 
@@ -3404,7 +3396,6 @@ void RuntimeScriptService::onServiceProvider(ServiceProvider* oldProvider, Servi
 void RuntimeScriptService::onRunState(RunState state) 
 {
 	const bool running = state != RS_STOPPED;
-	std::fprintf(stderr, "RBLX2016: RuntimeScriptService onRunState state=%d running=%d\n", (int)state, (int)running);
 	if (running == isRunning)
 		return;
 
@@ -3434,7 +3425,6 @@ void RuntimeScriptService::onRunState(RunState state)
 
 void RuntimeScriptService::runScript(BaseScript* script) 
 {
-	std::fprintf(stderr, "RBLX2016: RuntimeScriptService runScript %s isRunning=%d backend=%d\n", script->getName().c_str(), (int)isRunning, (int)Network::Players::backendProcessing(this));
 	RBXASSERT(runningScripts.find(weak_from(script)) == runningScripts.end());
 
 	ScriptContext* scriptContext = ServiceProvider::create<ScriptContext>(this);

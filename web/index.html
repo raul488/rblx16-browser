@@ -11,7 +11,7 @@
 html,body{ height:100%; margin:0; overflow:hidden; background:#7b9db7;
            font-family:'Comic Sans MS','Comic Sans','Segoe UI',sans-serif; color:#111; }
 #view{ position:fixed; inset:0; background:#18354f; }
-#gameCanvas{ display:block; width:100%; height:100%; }
+#gameCanvas{ display:block; width:100%; height:100%; touch-action:none; }
 
 #login{ position:fixed; inset:0; overflow-y:auto; overflow-x:hidden; z-index:100;
         background:url('content/sky/null_plainsky512_up.jpg') center/cover, #18354f; }
@@ -20,12 +20,9 @@ html,body{ height:100%; margin:0; overflow:hidden; background:#7b9db7;
                padding:20px 28px 22px; box-shadow:0 8px 28px rgba(0,0,0,.6); }
 .siteBanner{ display:block; margin:0 auto 10px; width:min(330px,80%); height:auto;
              -webkit-user-drag:none; }
-.badgeRow{ display:flex; justify-content:center; gap:8px; margin:2px 0 14px; flex-wrap:wrap; }
-.badge{ font-size:10.5px; letter-spacing:.4px; color:#345; border:1px solid #b3c1cf;
-        background:#eef4fa; padding:2px 7px; border-radius:2px; }
-.badge.hot{ color:#fff; background:#4f86bd; border-color:#2f5d8e; }
 .subtitle{ text-align:center; color:#425d75; font-size:12px; margin:0 0 14px; line-height:1.5; }
 h2{ font-size:13px; color:#24405c; margin:15px 0 6px; letter-spacing:.3px; }
+h2 .btn{ margin-left:8px; padding:1px 8px; font-size:10.5px; vertical-align:middle; }
 .placeList{ border:1px solid #b3c1cf; background:#fff; max-height:220px; overflow:auto; }
 .pl{ padding:8px 12px; border-bottom:1px solid #e3e9ef; cursor:pointer; font-size:14px;
      display:flex; justify-content:space-between; gap:12px; align-items:center; }
@@ -37,6 +34,8 @@ h2{ font-size:13px; color:#24405c; margin:15px 0 6px; letter-spacing:.3px; }
 .row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
 .cfgRow{ display:flex; align-items:center; gap:8px; margin-top:12px; }
 .cfgRow label{ font-size:12px; color:#425d75; white-space:nowrap; }
+.checkRow{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12px; color:#425d75; }
+.checkRow input{ margin:0; }
 #userName{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font-size:13px;
            font-family:inherit; background:#fff; outline:none; }
 #userName:focus{ border-color:#5c9be0; }
@@ -70,32 +69,6 @@ a{ color:#2f5d8e; }
 #webglWarn b{ display:block; font-size:13px; margin-bottom:2px; }
 #webglWarn code{ font-size:11px; background:#f6d7d2; padding:0 3px; }
 
-@font-face{ font-family:'SourceSans'; src:url('content/fonts/SourceSansPro-Regular.ttf') format('truetype');
-            font-display:swap; }
-#loadingBar{ display:none; position:fixed; inset:0; z-index:140; overflow:hidden;
-             background:#2d2d2d; font-family:'SourceSans','Segoe UI',sans-serif; }
-#loadingTexture{ position:absolute; inset:0; background:url('content/textures/loading/darkLoadingTexture.png') repeat; }
-#loadingInfo{ position:absolute; left:100px; bottom:150px; width:40%; color:#fff; z-index:2; }
-#loadingTitle{ font-size:30px; line-height:1.08; text-shadow:0 1px 2px rgba(0,0,0,.45);
-               overflow-wrap:break-word; }
-#loadingCreator{ margin-top:8px; font-size:17px; opacity:.92; }
-#loadingSpinner{ position:absolute; right:225px; bottom:165px; width:120px; height:120px; z-index:2; }
-#loadingCircle{ width:120px; height:120px; animation:lspin 1.6s linear infinite; }
-#loadingText{ position:absolute; left:28px; top:0; width:64px; height:120px; display:flex;
-              align-items:center; justify-content:flex-start; text-align:left;
-              color:#fff; font-size:15px; line-height:1.15; }
-@keyframes lspin{ to{ transform:rotate(360deg); } }
-#loadingMessage{ position:absolute; left:25%; bottom:120px; width:50%; text-align:center;
-                 color:#fff; font-weight:bold; font-size:16px; z-index:2; text-shadow:0 1px 2px rgba(0,0,0,.45); }
-@media (max-width:700px){
-  #loadingInfo{ left:24px; bottom:110px; width:55%; }
-  #loadingTitle{ font-size:22px; }
-  #loadingSpinner{ right:40px; bottom:60px; width:90px; height:90px; }
-  #loadingCircle{ width:90px; height:90px; }
-  #loadingText{ height:90px; font-size:12px; left:19px; width:52px; }
-  #loadingMessage{ bottom:80px; font-size:14px; }
-}
-
 #fatal{ display:none; position:fixed; inset:0; z-index:150; align-items:center; justify-content:center;
         background:rgba(20,35,50,.7); }
 #fatal .box{ max-width:560px; width:90%; background:#fff; border:1px solid #8fa3b6; padding:18px 22px;
@@ -111,11 +84,6 @@ a{ color:#2f5d8e; }
 <div id="login">
   <div class="inner">
     <img class="siteBanner" src="content/textures/roblox-logo.png" alt="ROBLOX">
-    <div class="badgeRow">
-      <span class="badge hot">2016 CLIENT</span>
-      <span class="badge">BROWSER PORT</span>
-      <span class="badge">OFFLINE PLAY SOLO</span>
-    </div>
     <div class="subtitle">The 2016 Roblox engine, compiled to WebAssembly.<br>
       Drop in a place from that era and play. No account, no install.</div>
 
@@ -125,7 +93,7 @@ a{ color:#2f5d8e; }
       Enable hardware acceleration / WebGL in the browser settings, then reload this page.
     </div>
 
-    <h2>Places</h2>
+    <h2>Places <button type="button" class="btn" id="refreshPlaces" title="Re-read web/places/">Refresh</button></h2>
     <div class="placeList" id="placeList"></div>
 
     <div class="row">
@@ -138,12 +106,18 @@ a{ color:#2f5d8e; }
       <label for="userName">Username:</label>
       <input id="userName" maxlength="20" spellcheck="false" placeholder="Player1">
     </div>
+    <label class="checkRow" for="unlockFps">
+      <input type="checkbox" id="unlockFps">
+      Unlock FPS (disable the engine's 30 FPS cap)
+    </label>
     <div class="status" id="status"></div>
     <button type="button" id="playBtn">Play</button>
 
     <div class="tip">
       <b>Controls:</b> WASD + Space to move · right-drag to turn the camera ·
-      scroll to zoom · 1–9 for tools.<br>
+      scroll to zoom · 1–9 for tools · F11 fullscreen · F12 record video ·
+      Print Screen screenshot. Touch devices use the stock thumbstick, jump
+      button and touch camera.<br>
       Places run their own embedded scripts locally. Only open files you trust.
     </div>
 
@@ -159,19 +133,6 @@ a{ color:#2f5d8e; }
       </div>
     </div>
   </div>
-</div>
-
-<div id="loadingBar">
-  <div id="loadingTexture"></div>
-  <div id="loadingInfo">
-    <div id="loadingTitle">Joining game…</div>
-    <div id="loadingCreator"></div>
-  </div>
-  <div id="loadingSpinner">
-    <img id="loadingCircle" src="content/textures/loading/loadingCircle.png" alt="">
-    <div id="loadingText">Loading</div>
-  </div>
-  <div id="loadingMessage"></div>
 </div>
 
 <div id="fatal" role="alertdialog" aria-modal="true">

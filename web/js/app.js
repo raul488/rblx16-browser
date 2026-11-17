@@ -6,22 +6,24 @@
   const MAX_PLACE_BYTES = 32 * 1024 * 1024;
   const $ = (id) => document.getElementById(id);
 
-  const builtIn = [
-    {
-      id: "doomspire",
-      name: "Doomspire Brickbattle",
-      meta: "2016 classic · 4 teams · brick battle",
-      src: "places/Doomspire Brickbattle.rbxl",
-      bytes: null,
-    },
-  ];
+  // Phones/tablets use the stock 2016 touch controls; a touchscreen laptop
+  // with a fine pointer stays on keyboard + mouse.
+  const touchDevice =
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "") ||
+    (navigator.maxTouchPoints > 0 &&
+      ((window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ||
+       /Macintosh/i.test(navigator.userAgent || "")));
 
-  let places = builtIn.slice();
-  let selected = places[0];
+  let places = [];
+  let selected = null;
   let engine = null;
   let playing = false;
   let modulePromise = null;
   let rafId = 0;
+  let screenshotPending = false;
+  let mediaRecorder = null;
+  let recordChunks = [];
+  let recordStream = null;
   const canvas = $("gameCanvas");
   function resizeCanvas() {
     if (!engine || !playing) return;
@@ -37,9 +39,7 @@
   const playBtn = $("playBtn");
   const openFile = $("openFile");
   const userName = $("userName");
-  const loading = $("loadingBar");
-  const loadingText = $("loadingText");
-  const loadingTitle = $("loadingTitle");
+  const unlockFps = $("unlockFps");
   const fatal = $("fatal");
   const fatalText = $("fatalText");
 
@@ -84,6 +84,39 @@
     playBtn.disabled = !selected || !!$("webglWarn").offsetParent;
   }
 
+  function formatSize(bytes) {
+    return bytes >= 1048576
+      ? (bytes / 1048576).toFixed(1) + " MB"
+      : Math.max(1, Math.round(bytes / 1024)) + " KB";
+  }
+
+  async function loadPlaces() {
+    try {
+      const response = await fetch("places", { cache: "no-store" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const list = await response.json();
+      const bundled = (Array.isArray(list) ? list : []).map((p) => ({
+        id: "place:" + p.file,
+        name: p.name,
+        meta: "bundled · " + formatSize(p.bytes),
+        src: "places/" + encodeURIComponent(p.file),
+        bytes: null,
+      }));
+      const locals = places.filter((p) => p.local);
+      const previous = selected && selected.id;
+      places.splice(0, places.length, ...locals, ...bundled);
+      selected = places.find((p) => p.id === previous) || places[0] || null;
+      renderPlaces();
+      if (!places.length) {
+        setStatus("No places in web/places/. Drop in a .rbxl file or open one locally.", true);
+      } else {
+        setStatus("");
+      }
+    } catch (e) {
+      setStatus("Could not list web/places/. Open a local place file instead.", true);
+    }
+  }
+
   async function readFileBytes(p) {
     if (p.bytes) return p.bytes;
     if (!p.src) throw new Error("No place data.");
@@ -108,6 +141,7 @@
         name: file.name.replace(/\.(rbxlx?|rbxm|xml)$/i, ""),
         meta: "local file · " + (bytes.length / 1024).toFixed(0) + " KB",
         bytes,
+        local: true,
       };
       const old = places.findIndex((x) => x.id === p.id);
       if (old >= 0) places.splice(old, 1);
@@ -122,6 +156,93 @@
   function afterPaint() {
     return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  function captureCanvas() {
+    canvas.toBlob((blob) => {
+      if (blob) downloadBlob(blob, "roblox-2016.png");
+    }, "image/png");
+  }
+
+  function startRecording() {
+    if (mediaRecorder) return true;
+    if (typeof MediaRecorder === "undefined" || typeof canvas.captureStream !== "function") {
+      console.warn("Video recording is not supported in this browser.");
+      return false;
+    }
+    try {
+      recordStream = canvas.captureStream(30);
+      let mime = "video/webm";
+      if (MediaRecorder.isTypeSupported("video/webm;codecs=vp9")) mime = "video/webm;codecs=vp9";
+      else if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) mime = "video/webm;codecs=vp8";
+      mediaRecorder = new MediaRecorder(recordStream, { mimeType: mime });
+      recordChunks = [];
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size) recordChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordChunks, { type: "video/webm" });
+        recordChunks = [];
+        if (recordStream) {
+          recordStream.getTracks().forEach((track) => track.stop());
+          recordStream = null;
+        }
+        mediaRecorder = null;
+        if (blob.size) downloadBlob(blob, "roblox-2016.webm");
+      };
+      mediaRecorder.start();
+      return true;
+    } catch (e) {
+      console.warn("Could not start video recording", e);
+      if (recordStream) {
+        recordStream.getTracks().forEach((track) => track.stop());
+        recordStream = null;
+      }
+      mediaRecorder = null;
+      return false;
+    }
+  }
+
+  function stopRecording() {
+    if (!mediaRecorder) return false;
+    if (mediaRecorder.state !== "inactive") mediaRecorder.stop();
+    return true;
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch((e) => {
+        console.warn("Fullscreen request failed", e);
+      });
+    }
+  }
+
+  function installFullscreenSync(mod) {
+    if (window.__rblxFullscreenSync) return;
+    window.__rblxFullscreenSync = true;
+    document.addEventListener("fullscreenchange", () => {
+      try {
+        mod.ccall("rblx_set_fullscreen", null, ["number"], [document.fullscreenElement ? 1 : 0]);
+      } catch (_) {}
+    });
+  }
+
+  window.rblxScreenshot = () => { screenshotPending = true; };
+  window.rblxRecordStart = startRecording;
+  window.rblxRecordStop = stopRecording;
+  window.rblxToggleFullscreen = toggleFullscreen;
 
   async function ensureModule() {
     if (engine) return engine;
@@ -159,14 +280,16 @@
       })().catch((e) => { modulePromise = null; throw e; });
     }
     engine = await modulePromise;
+    installFullscreenSync(engine);
     return engine;
   }
 
   function showFatal(err) {
     playing = false;
-    if (loading.__ticker) { clearInterval(loading.__ticker); loading.__ticker = null; }
-    loading.style.display = "none";
+    playBtn.disabled = !hasWebGL2();
+    login.style.pointerEvents = "";
     login.style.display = "block";
+    setStatus("The engine could not start.", true);
     fatalText.textContent = err && err.stack ? err.stack : String(err || "Unknown error");
     fatal.style.display = "flex";
   }
@@ -176,28 +299,15 @@
     if (!selected) { setStatus("Choose a place first.", true); return; }
     const name = saveName();
     playing = true;
+    playBtn.disabled = true;
+    login.style.pointerEvents = "none";
     fatal.style.display = "none";
-    setStatus("");
-    loadingTitle.textContent = selected.name;
-    const loadingCreator = $("loadingCreator");
-    const loadingMessage = $("loadingMessage");
-    if (loadingCreator) loadingCreator.textContent = selected.bytes ? "Local file" : "Roblox";
-    if (loadingMessage) loadingMessage.textContent = "Starting the 2016 engine…";
-    if (loading.__ticker) { clearInterval(loading.__ticker); loading.__ticker = null; }
-    let loadingDots = 0;
-    if (loadingText) loadingText.textContent = "Loading";
-    const loadingTicker = setInterval(() => {
-      loadingDots = (loadingDots + 1) % 4;
-      if (loadingText) loadingText.textContent = "Loading" + ".".repeat(loadingDots);
-    }, 450);
-    loading.__ticker = loadingTicker;
-    loading.style.display = "flex";
-    login.style.display = "none";
+    setStatus("Starting the 2016 engine…");
     await afterPaint();
 
     try {
       const bytes = await readFileBytes(selected);
-      if (loadingMessage) loadingMessage.textContent = "Loading place (" + (bytes.length / 1024).toFixed(0) + " KB)…";
+      setStatus("Starting the 2016 engine… (" + (bytes.length / 1024).toFixed(0) + " KB place)");
       const mod = await ensureModule();
       if (typeof mod._rblx_start_place !== "function") {
         throw new Error(
@@ -210,20 +320,22 @@
       // rbxassetid:// resolves to <origin>/asset/?id=N; serve.py proxies that
       // to assetdelivery and caches the bytes.
       const rc = mod.ccall("rblx_start_place", "number",
-        ["number", "number", "string", "string"], [ptr, bytes.length, name, location.origin + "/"]);
+        ["number", "number", "string", "string", "number"],
+        [ptr, bytes.length, name, location.origin + "/", touchDevice ? 1 : 0]);
       mod._free(ptr);
       if (rc !== 0) throw new Error("rblx_start_place returned " + rc);
-      const hideSplash = () => {
-        loading.style.display = "none";
-        if (loading.__ticker) { clearInterval(loading.__ticker); loading.__ticker = null; }
-        loadingText.textContent = "Loading";
-        if (loadingMessage) loadingMessage.textContent = "";
-      };
+      try {
+        mod.ccall("rblx_set_unlock_fps", null, ["number"], [unlockFps.checked ? 1 : 0]);
+      } catch (_) {}
       if (typeof mod._rblx_has_view === "function" && mod.ccall("rblx_has_view", "number", [], [])) {
         const frame = () => {
           if (!playing) return;
           if (canvas.__flushMouse) canvas.__flushMouse();
           try { mod.ccall("rblx_frame", null, [], []); } catch (e) { console.warn(e); }
+          if (screenshotPending) {
+            screenshotPending = false;
+            captureCanvas();
+          }
           rafId = requestAnimationFrame(frame);
         };
         installInput(mod);
@@ -233,9 +345,8 @@
           new ResizeObserver(resizeCanvas).observe(canvas);
         }
         rafId = requestAnimationFrame(frame);
-        // Let the engine's LoadingScript build and paint its GUI behind the
-        // HTML splash, then deserialize the place. The stock screen stays up
-        // until the local character exists.
+        // Keep the login shell up until the engine's own LoadingScript has
+        // built its GUI. The stock loading screen is the only loading UI.
         const startLoad = (tries) => {
           let ready = 0;
           try { ready = mod.ccall("rblx_loading_gui_ready", "number", [], []); } catch (_) {}
@@ -243,25 +354,25 @@
             setTimeout(() => startLoad(tries - 1), 100);
             return;
           }
-          const begin = () => {
-            // Reveal the engine's own loading GUI before the deserialize blocks
-            // the main thread. If the stock GUI never appeared, keep the HTML
-            // splash until after the blocking parse.
-            if (ready) hideSplash();
+          const begin = async () => {
+            if (ready) {
+              // Let the LoadingScript paint its background and spinner.
+              await new Promise((resolve) => setTimeout(resolve, 900));
+              await afterPaint();
+            }
+            login.style.display = "none";
+            setStatus("");
             try { mod.ccall("rblx_load_place", "number", [], []); } catch (e) { console.warn(e); }
-            if (!ready) setTimeout(hideSplash, 4000);
             // Fallback only; the engine normally spawns the avatar itself and
             // the LoadingScript stays up until then.
             setTimeout(() => { try { mod.ccall("rblx_force_character", null, [], []); } catch (_) {} }, 6000);
           };
-          // Let the tiled background and spinner textures load/paint first.
-          if (ready) setTimeout(begin, 900);
-          else begin();
+          begin();
         };
         startLoad(25);
       } else {
         try { mod.ccall("rblx_load_place", "number", [], []); } catch (_) {}
-        hideSplash();
+        login.style.display = "none";
         setStatus("Place loaded, but the renderer did not start (headless engine).", true);
       }
       console.log("[rbx2016] place started");
@@ -292,6 +403,9 @@
       case "Tab": return 9;
       case "Backspace": return 8;
       case "Escape": return 27;
+      case "F11": return 292;
+      case "F12": return 293;
+      case "PrintScreen": return 316;
       default: break;
     }
     if (e.key.length === 1) return e.key.toLowerCase().charCodeAt(0);
@@ -316,6 +430,8 @@
     // stops at window edges, so without capture camera turning would stick.
     let locked = false;
     let rightDown = false;
+    let lockRequested = false;
+    let lockTime = 0;
     let skipLockedMove = false;
     const lockedPos = { x: 0, y: 0 };
     const heldKeys = new Map();   // key -> { code, ch }
@@ -332,36 +448,111 @@
     };
     canvas.__flushMouse = flushMouse;
 
+    const activeTouches = new Map();
     const releaseAll = () => {
       for (const [, h] of heldKeys) ccall("rblx_key_event", [h.code, 0, h.ch, 0]);
       heldKeys.clear();
       keysDown.clear();
       for (const b of heldButtons) ccall("rblx_mouse_button", [b, lockedPos.x, lockedPos.y, 0]);
       heldButtons.clear();
+      for (const [id, p] of activeTouches) {
+        try {
+          mod.ccall("rblx_touch_event", null, ["number", "number", "number", "number"], [id, p[0], p[1], 3]);
+        } catch (_) {}
+      }
+      activeTouches.clear();
       rightDown = false;
+      lockRequested = false;
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     };
     canvas.__releaseInput = releaseAll;
 
+    const touchToEngine = (t, state) => {
+      const p = toCanvas(t);
+      if (state === 0 || state === 1) activeTouches.set(t.identifier, [p[0], p[1]]);
+      try {
+        mod.ccall("rblx_touch_event", null, ["number", "number", "number", "number"],
+          [t.identifier, p[0], p[1], state]);
+      } catch (_) {}
+    };
+    canvas.addEventListener("touchstart", (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (!activeTouches.has(t.identifier)) touchToEngine(t, 0);
+      }
+    }, { passive: false });
+    canvas.addEventListener("touchmove", (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (!activeTouches.has(t.identifier)) touchToEngine(t, 0);
+        else touchToEngine(t, 1);
+      }
+    }, { passive: false });
+    canvas.addEventListener("touchend", (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (activeTouches.delete(t.identifier)) {
+          const p = toCanvas(t);
+          try {
+            mod.ccall("rblx_touch_event", null, ["number", "number", "number", "number"],
+              [t.identifier, p[0], p[1], 2]);
+          } catch (_) {}
+        }
+      }
+    }, { passive: false });
+    canvas.addEventListener("touchcancel", (e) => {
+      if (!playing) return;
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (activeTouches.delete(t.identifier)) {
+          const p = toCanvas(t);
+          try {
+            mod.ccall("rblx_touch_event", null, ["number", "number", "number", "number"],
+              [t.identifier, p[0], p[1], 3]);
+          } catch (_) {}
+        }
+      }
+    }, { passive: false });
+
     document.addEventListener("pointerlockchange", () => {
       locked = document.pointerLockElement === canvas;
+      lockRequested = false;
       // The first event after capture can carry the delta from the click
-      // position to the capture origin; ignore it once.
+      // position to the capture origin; ignore it once, plus the short warp
+      // window. Drop any movement queued before the lock took effect.
       skipLockedMove = locked;
+      lockTime = performance.now();
+      pending.has = false;
+      pending.dx = 0;
+      pending.dy = 0;
       updateCursor();
       if (!locked && rightDown) {
         rightDown = false;
         ccall("rblx_mouse_button", [2, lockedPos.x, lockedPos.y, 0]);
       }
     });
+    document.addEventListener("pointerlockerror", () => {
+      lockRequested = false;
+    });
     updateCursor();
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     document.addEventListener("mousemove", (e) => {
       if (!playing) return;
+      // Browser pointer lock warps the cursor to the screen center. Those
+      // pre-lock movement deltas must not reach the camera: the right-button
+      // drag has already started, and applying them snaps the view.
+      if (rightDown && lockRequested) return;
       const p = toCanvas(e);
       let dx = Math.round(e.movementX * p[2]);
       let dy = Math.round(e.movementY * p[3]);
-      if (locked && skipLockedMove) { skipLockedMove = false; dx = 0; dy = 0; }
+      if (locked && (skipLockedMove || performance.now() - lockTime < 50)) {
+        skipLockedMove = false;
+        dx = 0;
+        dy = 0;
+      }
       let x = p[0], y = p[1];
       if (locked) {
         lockedPos.x = clamp(lockedPos.x + dx, 0, canvas.width - 1);
@@ -376,13 +567,23 @@
       if (!playing) return;
       const p = toCanvas(e);
       heldButtons.add(e.button);
+      // Deliver any coalesced motion from before the click before starting a
+      // drag; otherwise it is flushed after MouseButton2 down and the camera
+      // consumes that whole delta as a snap.
+      flushMouse();
       if (e.button === 2) {
         rightDown = true;
         lockedPos.x = p[0]; lockedPos.y = p[1];
-        try {
-          const req = canvas.requestPointerLock();
-          if (req && req.catch) req.catch(() => {});
-        } catch (_) {}
+        lockRequested = document.pointerLockElement !== canvas;
+        if (lockRequested) {
+          setTimeout(() => { lockRequested = false; }, 1000);
+          try {
+            const req = canvas.requestPointerLock();
+            if (req && req.catch) req.catch(() => { lockRequested = false; });
+          } catch (_) {
+            lockRequested = false;
+          }
+        }
       }
       ccall("rblx_mouse_button", [e.button, p[0], p[1], 1]);
     });
@@ -392,6 +593,7 @@
       heldButtons.delete(e.button);
       if (e.button === 2) {
         rightDown = false;
+        lockRequested = false;
         if (document.pointerLockElement === canvas) document.exitPointerLock();
       }
       ccall("rblx_mouse_button", [e.button, p[0], p[1], 0]);
@@ -405,7 +607,7 @@
     window.addEventListener("keydown", (e) => {
       if (!playing) return;
       const k = e.key.toLowerCase();
-      if ([" ","arrowup","arrowdown","arrowleft","arrowright","tab"].includes(k)) e.preventDefault();
+      if ([" ","arrowup","arrowdown","arrowleft","arrowright","tab","f11","f12","printscreen"].includes(k)) e.preventDefault();
       if (keysDown.has(k)) return;
       keysDown.add(k);
       const code = engineKeyCode(e);
@@ -431,7 +633,8 @@
 
   function stop() {
     if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
-    if (loading.__ticker) { clearInterval(loading.__ticker); loading.__ticker = null; }
+    screenshotPending = false;
+    if (mediaRecorder) { try { stopRecording(); } catch (_) {} }
     if (canvas.__releaseInput) canvas.__releaseInput();
     try {
       if (engine && typeof engine._rblx_stop === "function") {
@@ -439,7 +642,8 @@
       }
     } catch (e) { console.warn(e); }
     playing = false;
-    loading.style.display = "none";
+    playBtn.disabled = !hasWebGL2();
+    login.style.pointerEvents = "";
     login.style.display = "block";
     fatal.style.display = "none";
     setStatus("");
@@ -501,12 +705,17 @@
     });
   }
 
-  function boot() {
+  async function boot() {
     try { userName.value = localStorage.getItem("rblx2016.name") || "Player1"; } catch (_) {}
+    try { unlockFps.checked = localStorage.getItem("rblx2016.unlockFps") === "1"; } catch (_) {}
+    unlockFps.addEventListener("change", () => {
+      try { localStorage.setItem("rblx2016.unlockFps", unlockFps.checked ? "1" : "0"); } catch (_) {}
+    });
     userName.addEventListener("input", saveName);
     userName.addEventListener("blur", saveName);
     openFile.addEventListener("change", () => openLocalFile(openFile.files[0]));
     $("openFileBtn").addEventListener("click", () => openFile.click());
+    $("refreshPlaces").addEventListener("click", () => loadPlaces());
     playBtn.addEventListener("click", play);
     $("fatalBack").addEventListener("click", () => { location.reload(); });
     login.addEventListener("dragover", (e) => { e.preventDefault(); login.classList.add("drag"); });
@@ -528,6 +737,7 @@
       playBtn.disabled = true;
     }
     renderPlaces();
+    await loadPlaces();
     installCookieUi();
     window.RBLX2016_MENU = { play, stop, places };
     // The engine menu's Leave button (Exit verb) calls this. Reload instead of

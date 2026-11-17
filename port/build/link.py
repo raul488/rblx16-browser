@@ -114,7 +114,7 @@ def main() -> int:
         "-sFETCH=1",
         "--preload-file", str(ROOT / "web" / "content") + "@/content",
         "--preload-file", str(ROOT / "web" / "shaders") + "@/shaders",
-        "-sEXPORTED_FUNCTIONS=_rblx_start_place,_rblx_load_place,_rblx_loading_gui_ready,_rblx_stop,_rblx_frame,_rblx_resize,_rblx_has_view,_rblx_last_error,_rblx_test_thread,_rblx_frame_count,_rblx_set_camera,_rblx_debug_player,_rblx_key_event,_rblx_mouse_button,_rblx_mouse_move,_rblx_mouse_wheel,_rblx_force_character,_rblx_run_script,_rblx_debug_joints,_rblx_debug_anim,_rblx_debug_asset,_rblx_debug_gui,_rblx_audio_ended,_malloc,_free",
+        "-sEXPORTED_FUNCTIONS=_rblx_start_place,_rblx_load_place,_rblx_loading_gui_ready,_rblx_stop,_rblx_frame,_rblx_resize,_rblx_has_view,_rblx_last_error,_rblx_test_thread,_rblx_frame_count,_rblx_set_camera,_rblx_set_fullscreen,_rblx_set_unlock_fps,_rblx_touch_event,_rblx_debug_player,_rblx_key_event,_rblx_mouse_button,_rblx_mouse_move,_rblx_mouse_wheel,_rblx_force_character,_rblx_run_script,_rblx_debug_joints,_rblx_debug_anim,_rblx_debug_asset,_rblx_debug_gui,_rblx_audio_ended,_malloc,_free",
         "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU32",
     ]
     r = subprocess.run(link, env=env())
