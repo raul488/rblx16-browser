@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Play Roblox 2016 in your browser</title>
+<meta name="description" content="The 2016 Roblox client ported to the browser with WebAssembly. Offline Play Solo, local RBXL files, no account.">
+<style>
+/* Menu chrome follows the classic index.html look: sky backdrop, paper card,
+   blue gradients, red wordmark.  In-game UI is the 2016 client's own. */
+html,body{ height:100%; margin:0; overflow:hidden; background:#7b9db7;
+           font-family:'Comic Sans MS','Comic Sans','Segoe UI',sans-serif; color:#111; }
+#view{ position:fixed; inset:0; background:#18354f; }
+#gameCanvas{ display:block; width:100%; height:100%; touch-action:none; }
+
+#login{ position:fixed; inset:0; overflow-y:auto; overflow-x:hidden; z-index:100;
+        background:url('img/sky.jpg') center/cover, #18354f; }
+#login .inner{ margin:28px auto 54px; max-width:620px; width:92%;
+               background:linear-gradient(#fdfdfd,#e8eef5); border:1px solid #8fa3b6;
+               padding:20px 28px 22px; box-shadow:0 8px 28px rgba(0,0,0,.6); }
+.siteBanner{ display:block; margin:0 auto 10px; width:min(330px,80%); height:auto;
+             -webkit-user-drag:none; }
+.subtitle{ text-align:center; color:#425d75; font-size:12px; margin:0 0 14px; line-height:1.5; }
+h2{ font-size:13px; color:#24405c; margin:15px 0 6px; letter-spacing:.3px; }
+h2 .btn{ margin-left:8px; padding:1px 8px; font-size:10.5px; vertical-align:middle; }
+.placeList{ border:1px solid #b3c1cf; background:#fff; max-height:220px; overflow:auto; }
+.pl{ padding:8px 12px; border-bottom:1px solid #e3e9ef; cursor:pointer; font-size:14px;
+     display:flex; justify-content:space-between; gap:12px; align-items:center; }
+.pl:last-child{ border-bottom:0; }
+.pl:hover{ background:#dcebfb; }
+.pl.sel{ background:linear-gradient(#dcebfb,#cfe2fa); box-shadow:inset 3px 0 0 #4f86bd; }
+.pl .meta{ color:#789; font-size:11px; text-align:right; white-space:nowrap; }
+.pl .nm{ min-width:0; }
+.row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.cfgRow{ display:flex; align-items:center; gap:8px; margin-top:12px; }
+.cfgRow label{ font-size:12px; color:#425d75; white-space:nowrap; }
+.checkRow{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12px; color:#425d75; }
+.checkRow input{ margin:0; }
+#userName{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font-size:13px;
+           font-family:inherit; background:#fff; outline:none; }
+#userName:focus{ border-color:#5c9be0; }
+button{ font-family:inherit; }
+.btn{ font-size:11.5px; padding:4px 12px; border:1px solid #a4b2c0; color:#345; cursor:pointer;
+      background:linear-gradient(#fdfdfd,#dde6f0); }
+.btn:hover{ background:#dcebfb; }
+.btn:disabled{ opacity:.5; cursor:default; }
+#openFile{ display:none; }
+#playBtn{ display:block; width:100%; margin-top:14px; padding:10px 14px; border:1px solid #274a68;
+          background:linear-gradient(#8fc3f2,#5c9be0); color:#fff; font-size:16px; font-weight:bold;
+          cursor:pointer; letter-spacing:.6px; }
+#playBtn:hover{ filter:brightness(1.06); }
+#playBtn:disabled{ filter:grayscale(.6); opacity:.6; cursor:default; }
+.status{ min-height:16px; margin-top:8px; font-size:11.5px; color:#425d75; line-height:1.45; }
+.status.err{ color:#8d1f1f; }
+.tip{ font-size:11px; color:#567; margin-top:12px; line-height:1.6; border-top:1px dashed #c3cfdb;
+      padding-top:10px; }
+.tip b{ color:#345; }
+.cookieRow{ display:flex; gap:6px; margin-top:8px; align-items:center; }
+#cookieInput{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font-size:12px;
+              font-family:inherit; background:#fff; outline:none; }
+#cookieInput:focus{ border-color:#5c9be0; }
+#cookieState{ color:#345; letter-spacing:1px; }
+a{ color:#2f5d8e; }
+#dropHint{ color:#789; font-size:11px; }
+#login.drag{ outline:4px dashed #e4443c; outline-offset:-10px; }
+#lightGrid{ border:1px solid #a4b2c0; padding:3px 6px; font-size:12px; font-family:inherit; background:#fff; }
+#diagBox{ display:none; position:fixed; left:8px; bottom:8px; z-index:140; max-width:46vw;
+          background:rgba(10,16,24,.82); color:#cfe3ff; border:1px solid #33506f; padding:6px 8px;
+          font:10.5px/1.45 monospace; white-space:pre-wrap; pointer-events:none; }
+#diagBox.on{ display:block; }
+
+#webglWarn{ display:none; margin:10px 0 2px; padding:9px 11px; border:1px solid #c46a5a;
+            background:#fdecea; color:#7a2018; font-size:12px; line-height:1.55; }
+#webglWarn b{ display:block; font-size:13px; margin-bottom:2px; }
+#webglWarn code{ font-size:11px; background:#f6d7d2; padding:0 3px; }
+
+#fatal{ display:none; position:fixed; inset:0; z-index:150; align-items:center; justify-content:center;
+        background:rgba(20,35,50,.7); }
+#fatal .box{ max-width:560px; width:90%; background:#fff; border:1px solid #8fa3b6; padding:18px 22px;
+             box-shadow:0 6px 24px rgba(0,0,0,.55); }
+#fatal h3{ margin:0 0 8px; color:#8d1f1f; font-size:16px; }
+#fatal pre{ white-space:pre-wrap; font:11px/1.45 monospace; background:#f4f6f8; border:1px solid #d6dee7;
+            padding:8px; max-height:35vh; overflow:auto; }
+
+/* Catalog: the 2016 site's dark navy bar, grey sidebar, white item tiles. */
+#catalog{ display:none; position:fixed; inset:0; z-index:120; flex-direction:column;
+          background:#eef0f4; color:#333; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; }
+#catalog.open{ display:flex; }
+#catalog .top{ display:flex; align-items:center; gap:14px; padding:7px 16px; background:#1f2b45;
+               border-bottom:3px solid #2f4b74; }
+#catalog .top img{ height:20px; }
+#catalog .top h1{ margin:0; font-size:15px; font-weight:600; color:#fff; letter-spacing:.6px; }
+#catalog .top .wornline{ color:#a9bdd6; font-size:11px; margin-left:6px; }
+#catSearch{ margin-left:auto; width:220px; padding:5px 8px; font-size:12px; border:1px solid #0d1727;
+            background:#fff; border-radius:2px; outline:none; font-family:inherit; }
+#catalog .body{ flex:1; display:flex; min-height:0; }
+#catalog .side{ width:186px; flex:none; background:#dfe4ea; border-right:1px solid #c3ccd6;
+                overflow:auto; padding-bottom:14px; }
+#catalog .side h3{ margin:12px 14px 3px; font-size:10.5px; text-transform:uppercase; color:#5b6b7c;
+                   letter-spacing:.7px; }
+#catalog .side a{ display:block; padding:5px 16px; font-size:12.5px; color:#24557f; cursor:pointer; }
+#catalog .side a:hover{ background:#cfd9e4; }
+#catalog .side a.sel{ background:#24557f; color:#fff; }
+#catalog .side select{ margin:2px 12px 0; width:162px; font-size:11.5px; padding:2px; font-family:inherit; }
+#catalog .colours{ display:grid; grid-template-columns:1fr 1fr; gap:4px 6px; margin:4px 12px 0; }
+#catalog .colours label{ font-size:10.5px; color:#4a5b6c; display:flex; flex-direction:column; }
+#catalog .colours select{ width:100%; font-size:11px; font-family:inherit; }
+#catalog .main{ flex:1; min-width:0; overflow:auto; padding:14px 18px 48px; }
+#catalog .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px; }
+#catalog .tile{ background:#fff; border:1px solid #c3ccd6; padding:6px; text-align:center;
+                cursor:pointer; display:flex; flex-direction:column; }
+#catalog .tile:hover{ border-color:#7ba3cd; box-shadow:0 1px 7px rgba(0,0,0,.2); }
+#catalog .tile.worn{ border-color:#2a8a3e; box-shadow:inset 0 0 0 2px #b7e3c2; }
+#catalog .tile img{ width:100%; aspect-ratio:1/1; object-fit:contain; background:#f7f8fa; }
+#catalog .tile .nm{ font-size:12px; color:#24557f; margin-top:6px; line-height:1.25; min-height:30px;
+                    overflow:hidden; }
+#catalog .tile .cr{ font-size:10.5px; color:#8794a1; margin-top:2px; }
+#catalog .tile .pr{ font-size:11.5px; color:#2a8a3e; font-weight:700; margin-top:4px; }
+#catalog .note{ padding:26px 8px; font-size:13px; color:#5b6b7c; line-height:1.7; }
+#catalog .note code{ background:#e2e7ee; padding:1px 4px; font-size:12px; }
+#catDetail{ display:none; position:fixed; inset:0; z-index:130; background:rgba(20,32,48,.7);
+            align-items:center; justify-content:center; }
+#catDetail.open{ display:flex; }
+#catDetail .sheet{ background:#fff; border:1px solid #8fa3b6; width:min(620px,92%); max-height:88vh;
+                   overflow:auto; display:flex; gap:16px; padding:16px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
+#catDetail img{ width:210px; height:210px; object-fit:contain; background:#f7f8fa; border:1px solid #dde3ea; }
+#catDetail .info{ flex:1; min-width:0; }
+#catDetail h2{ margin:0 0 4px; font-size:17px; color:#24557f; }
+#catDetail .meta{ font-size:11.5px; color:#78899a; margin-bottom:10px; }
+#catDetail .price{ font-size:15px; color:#2a8a3e; font-weight:700; margin:6px 0 14px; }
+#catDetail .btns{ display:flex; gap:8px; flex-wrap:wrap; }
+#catDetail .btn{ font-size:12px; padding:6px 14px; }
+#catDetail .wearing{ background:#24557f; color:#fff; border:1px solid #17405f; }
+#catalog .wornbar{ background:#f6f8fa; border:1px solid #d7dee6; padding:7px 10px; margin-bottom:12px;
+                   font-size:11.5px; color:#4a5b6c; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+#catalog .wornbar b{ color:#24557f; }
+#catalog .wornbar button{ font-size:10.5px; padding:1px 6px; }
+@media (max-width:720px){
+  #catalog .top{ gap:8px; padding:6px 10px; }
+  #catalog .top .wornline{ display:none; }
+  #catSearch{ width:120px; }
+  #catalog .side{ width:132px; }
+  #catalog .side select{ width:110px; }
+  #catalog .colours{ display:block; margin:4px 10px 0; }
+  #catalog .grid{ grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+  #catalog .tile .nm{ font-size:11px; min-height:0; }
+  #catDetail .sheet{ flex-direction:column; align-items:center; }
+  #catDetail img{ width:150px; height:150px; }
+}
+</style>
+</head>
+<body>
+<div id="view"><canvas id="gameCanvas"></canvas></div>
+
+<div id="login">
+  <div class="inner">
+    <img class="siteBanner" src="img/roblox-logo.png" alt="ROBLOX">
+    <div class="subtitle">The 2016 Roblox engine, compiled to WebAssembly.<br>
+      Drop in a place from that era and play. No account, no install.</div>
+
+    <div id="webglWarn" role="alert">
+      <b>WebGL 2 is disabled or unavailable</b>
+      This browser could not create a WebGL 2 context, so the 3D client cannot render.
+      Enable hardware acceleration / WebGL in the browser settings, then reload this page.
+    </div>
+
+    <h2>Places <button type="button" class="btn" id="refreshPlaces" title="Re-read web/places/">Refresh</button></h2>
+    <div class="placeList" id="placeList"></div>
+
+    <div class="row">
+      <button type="button" class="btn" id="openFileBtn">Open .rbxl / .rbxlx</button>
+      <span id="dropHint">or drag a place file onto this page</span>
+      <input type="file" id="openFile" accept=".rbxl,.rbxlx,.rbxm,.xml">
+    </div>
+
+    <div class="cfgRow">
+      <label for="userName">Username:</label>
+      <input id="userName" maxlength="20" spellcheck="false" placeholder="Player1">
+      <button type="button" class="btn" id="catalogBtn">Catalog</button>
+    </div>
+    <div class="checkRow" id="wornLine" style="display:none"></div>
+    <label class="checkRow" for="unlockFps">
+      <input type="checkbox" id="unlockFps">
+      Unlock FPS (disable the engine's 30 FPS cap)
+    </label>
+    <div class="cfgRow">
+      <label for="lightGrid">Lighting:</label>
+      <select id="lightGrid" title="Renderer compatibility; applies on the next Play">
+        <option value="0">Automatic</option>
+        <option value="1">2D light grid</option>
+        <option value="2">No light grid (diagnostic)</option>
+      </select>
+    </div>
+    <label class="checkRow" for="gles2Shaders">
+      <input type="checkbox" id="gles2Shaders">
+      Use the GLES2 shader pack (renderer compatibility)
+    </label>
+    <label class="checkRow" for="showDiag">
+      <input type="checkbox" id="showDiag">
+      Show renderer diagnostics over the game
+    </label>
+    <div class="status" id="status"></div>
+    <button type="button" id="playBtn">Play</button>
+
+    <div class="tip">
+      <b>Controls:</b> WASD + Space to move · right-drag to turn the camera ·
+      scroll to zoom · 1–9 for tools · F11 fullscreen · F12 record video ·
+      Print Screen screenshot. Touch devices use the stock thumbstick, jump
+      button and touch camera.<br>
+      Places run their own embedded scripts locally. Only open files you trust.
+    </div>
+
+    <div class="tip">
+      <b>Asset delivery cookie:</b> <span id="cookieState">checking…</span><br>
+      Used by the local server to download <code>rbxassetid://</code> content from
+      assetdelivery. Stored next to <code>web/</code>, never in this page.
+      <div class="cookieRow">
+        <input id="cookieInput" type="password" autocomplete="off" spellcheck="false"
+               placeholder=".ROBLOSECURITY value">
+        <button type="button" class="btn" id="cookieSave">Save</button>
+        <button type="button" class="btn" id="cookieClear">Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="catalog">
+  <div class="top">
+    <img src="img/roblox-logo.png" alt="ROBLOX">
+    <h1>Catalog</h1>
+    <span class="wornline" id="catWornLine"></span>
+    <input id="catSearch" type="search" placeholder="Search the catalog" spellcheck="false">
+    <button type="button" class="btn" id="catClose">Back to menu</button>
+  </div>
+  <div class="body">
+    <div class="side">
+      <h3>Categories</h3>
+      <div id="catCats"></div>
+      <h3>Creator</h3>
+      <select id="catCreator"><option value="">All creators</option></select>
+      <h3>Body colours</h3>
+      <div class="colours" id="catColours"></div>
+    </div>
+    <div class="main">
+      <div class="wornbar" id="catWornBar"></div>
+      <div class="grid" id="catGrid"></div>
+      <div class="note" id="catNote" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div id="catDetail">
+  <div class="sheet">
+    <img id="catDetailImg" alt="">
+    <div class="info">
+      <h2 id="catDetailName"></h2>
+      <div class="meta" id="catDetailMeta"></div>
+      <div class="price">Your soul</div>
+      <div class="btns">
+        <button type="button" class="btn" id="catWear"></button>
+        <button type="button" class="btn" id="catDetailClose">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="diagBox"></div>
+
+<div id="fatal" role="alertdialog" aria-modal="true">
+  <div class="box">
+    <h3 id="fatalTitle">The engine could not start</h3>
+    <pre id="fatalText"></pre>
+    <button type="button" class="btn" id="fatalBack">Back to menu</button>
+  </div>
+</div>
+
+<script src="coi-serviceworker.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
