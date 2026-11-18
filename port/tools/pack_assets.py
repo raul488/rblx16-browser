@@ -50,6 +50,13 @@ def catalog_ids():
     return ids
 
 
+def cached_ids():
+    try:
+        return {name for name in os.listdir(CACHE) if name.isdigit()}
+    except OSError:
+        return set()
+
+
 def place_ids():
     ids = set()
     for name in os.listdir(PLACES):
@@ -73,8 +80,11 @@ def main():
                     break
     print("cookie:", "yes" if fc.COOKIE else "no")
 
-    ids = sorted(catalog_ids() | place_ids())
-    print(f"{len(ids)} asset ids referenced by the catalog and places")
+    # Everything the places and catalog reference, plus anything already cached
+    # from a local session: place scripts build some asset ids at runtime, so a
+    # text scan alone misses them.
+    ids = sorted(catalog_ids() | place_ids() | cached_ids())
+    print(f"{len(ids)} asset ids referenced by the catalog, places and cache")
 
     os.makedirs(CACHE, exist_ok=True)
     os.makedirs(OUT, exist_ok=True)
