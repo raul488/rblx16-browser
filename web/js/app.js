@@ -960,7 +960,7 @@
     const pkgParts = (pkg && pkg.parts) || avatar.packageParts || [];
     const pkgExtras = (pkg && pkg.extras) || avatar.packageExtras || [];
     for (const part of pkgParts) {
-      if (part.asset) parts.push("pkg:" + part.asset);
+      if (part.mesh) parts.push("pkg:" + part.part + ":" + part.mesh + ":" + (part.texture || 0));
     }
     for (const extra of pkgExtras) {
       if (extra.type === "packhead") parts.push("pkghead:" + extra.id);

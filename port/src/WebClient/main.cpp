@@ -437,10 +437,9 @@ void ensureCharacterAttachments(RBX::Humanoid* humanoid) {
     }
 }
 
-// Hats, shoulder/back items and body packages are engine models, not textures.
+// Hats and shoulder/back items are engine models, not textures.
 bool isAccessoryModel(const std::string& type) {
-    return type == "hat" || type == "shoulder" || type == "back" || type == "acc" ||
-           type == "pkg";
+    return type == "hat" || type == "shoulder" || type == "back" || type == "acc";
 }
 
 // A loaded model may wrap the wearable (body packages are a Folder holding a
@@ -449,8 +448,9 @@ void collectAppearance(const boost::shared_ptr<RBX::Instance>& root,
                        std::vector<boost::shared_ptr<RBX::Instance>>& out) {
     if (!root) return;
     RBX::Instance* instance = root.get();
+    // Deliberately not DataModelMesh: a model's FileMesh would be applied as
+    // the head mesh and replace it.
     bool wearable = RBX::Instance::fastDynamicCast<RBX::CharacterAppearance>(instance) ||
-                    RBX::Instance::fastDynamicCast<RBX::DataModelMesh>(instance) ||
                     RBX::Instance::fastDynamicCast<RBX::Decal>(instance) ||
                     dynamic_cast<RBX::IEquipable*>(instance) != nullptr;
     if (wearable) out.push_back(root);
@@ -489,6 +489,18 @@ void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::str
                 RBX::ShirtGraphic::prop_Graphic.setValue(item.get(),
                     RBX::TextureId(avatarUrl(base, e.id)));
                 worn.push_back(item);
+            } else if (e.type == "pkg") {
+                // Body package piece: "<bodyPart>:<meshAssetId>:<baseTextureId>"
+                int bodyPart = 0, mesh = 0, texture = 0;
+                if (std::sscanf(e.value.c_str(), "%d:%d:%d", &bodyPart, &mesh, &texture) == 3 && mesh) {
+                    boost::shared_ptr<RBX::CharacterMesh> item =
+                        RBX::Creatable<RBX::Instance>::create<RBX::CharacterMesh>();
+                    item->setBodyPart(static_cast<RBX::CharacterMesh::BodyPart>(bodyPart));
+                    RBX::CharacterMesh::prop_meshAssetId.setValue(item.get(), mesh);
+                    if (texture)
+                        RBX::CharacterMesh::prop_baseTextureAssetId.setValue(item.get(), texture);
+                    worn.push_back(item);
+                }
             } else if (e.type == "pkghead") {
                 // Package head mesh: "<meshAssetId>"
                 long long mesh = std::atoll(e.value.c_str());
