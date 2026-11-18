@@ -46,6 +46,8 @@
 #include "v8datamodel/PlayerScripts.h"
 #include "v8datamodel/CharacterAppearance.h"
 #include "v8datamodel/Decal.h"
+#include "v8datamodel/CharacterMesh.h"
+#include "v8datamodel/FileMesh.h"
 #include "v8datamodel/Attachment.h"
 #include "v8datamodel/Camera.h"
 #include "util/BrickColor.h"
@@ -355,6 +357,7 @@ namespace {
 struct AvatarEntry {
     std::string type;
     long long id = 0;
+    std::string value;  // part lists for packages, unused otherwise
 };
 
 std::vector<AvatarEntry> parseAvatarSpec(const std::string& spec, int* body) {
@@ -379,8 +382,9 @@ std::vector<AvatarEntry> parseAvatarSpec(const std::string& spec, int* body) {
         }
         AvatarEntry e;
         e.type = type;
+        e.value = value;
         e.id = std::atoll(value.c_str());
-        if (e.id > 0) entries.push_back(e);
+        if (e.id > 0 || type == "pkg" || type == "pkghead") entries.push_back(e);
     }
     return entries;
 }
@@ -433,9 +437,26 @@ void ensureCharacterAttachments(RBX::Humanoid* humanoid) {
     }
 }
 
-// Hats and shoulder/back items are engine models, not textures.
+// Hats, shoulder/back items and body packages are engine models, not textures.
 bool isAccessoryModel(const std::string& type) {
-    return type == "hat" || type == "shoulder" || type == "back" || type == "acc";
+    return type == "hat" || type == "shoulder" || type == "back" || type == "acc" ||
+           type == "pkg";
+}
+
+// A loaded model may wrap the wearable (body packages are a Folder holding a
+// CharacterMesh), so keep only the appearance pieces and their children.
+void collectAppearance(const boost::shared_ptr<RBX::Instance>& root,
+                       std::vector<boost::shared_ptr<RBX::Instance>>& out) {
+    if (!root) return;
+    RBX::Instance* instance = root.get();
+    bool wearable = RBX::Instance::fastDynamicCast<RBX::CharacterAppearance>(instance) ||
+                    RBX::Instance::fastDynamicCast<RBX::DataModelMesh>(instance) ||
+                    RBX::Instance::fastDynamicCast<RBX::Decal>(instance) ||
+                    dynamic_cast<RBX::IEquipable*>(instance) != nullptr;
+    if (wearable) out.push_back(root);
+    if (root->getChildren())
+        for (size_t i = 0; i < root->getChildren()->size(); ++i)
+            collectAppearance((*root->getChildren())[i], out);
 }
 
 void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::string& base,
@@ -468,6 +489,15 @@ void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::str
                 RBX::ShirtGraphic::prop_Graphic.setValue(item.get(),
                     RBX::TextureId(avatarUrl(base, e.id)));
                 worn.push_back(item);
+            } else if (e.type == "pkghead") {
+                // Package head mesh: "<meshAssetId>"
+                long long mesh = std::atoll(e.value.c_str());
+                if (mesh > 0) {
+                    boost::shared_ptr<RBX::FileMesh> item =
+                        RBX::Creatable<RBX::Instance>::create<RBX::FileMesh>();
+                    item->setMeshId(RBX::MeshId("rbxassetid://" + std::to_string(mesh)));
+                    worn.push_back(item);
+                }
             } else if (e.type == "face") {
                 boost::shared_ptr<RBX::Decal> item = RBX::Creatable<RBX::Instance>::create<RBX::Decal>();
                 item->setName("face");
@@ -483,7 +513,7 @@ void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::str
         RBX::BodyColors::prop_LeftLegColor.setValue(colors.get(), RBX::BrickColor(body[4]));
         RBX::BodyColors::prop_RightLegColor.setValue(colors.get(), RBX::BrickColor(body[5]));
         worn.insert(worn.begin(), colors);
-        for (const boost::shared_ptr<RBX::Instance>& hat : hats) worn.push_back(hat);
+        for (const boost::shared_ptr<RBX::Instance>& model : hats) collectAppearance(model, worn);
 
         for (const boost::shared_ptr<RBX::Instance>& item : worn) {
             if (!item) continue;
@@ -554,6 +584,8 @@ EMSCRIPTEN_KEEPALIVE void rblx_set_render_option(const char* name, int value) {
 EMSCRIPTEN_KEEPALIVE void rblx_set_avatar(const char* spec) {
     g_avatarSpec = spec ? spec : "";
     g_avatarCharacter.store(nullptr);
+    RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+        "RBLX2016: avatar spec %s", g_avatarSpec.c_str());
 }
 
 EMSCRIPTEN_KEEPALIVE void rblx_frame() {

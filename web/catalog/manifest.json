@@ -442,6 +442,24 @@
    "thumb": "thumbs/300409223.png"
   },
   {
+   "id": 301820684,
+   "type": "back",
+   "name": "John part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301820684",
+   "thumb": "thumbs/301820684.png"
+  },
+  {
+   "id": 301820523,
+   "type": "back",
+   "name": "Serena part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301820523",
+   "thumb": "thumbs/301820523.png"
+  },
+  {
    "id": 302281482,
    "type": "back",
    "name": "Deluxe Bat Wings",
@@ -14617,6 +14635,24 @@
    "thumb": "thumbs/262391075.png"
   },
   {
+   "id": 264641178,
+   "type": "hat",
+   "name": "All Terrain Driver part",
+   "creator": "Roblox",
+   "created": "2015-07-01",
+   "file": "item/264641178",
+   "thumb": "thumbs/264641178.png"
+  },
+  {
+   "id": 264645322,
+   "type": "hat",
+   "name": "ROBLOX Racer part",
+   "creator": "Roblox",
+   "created": "2015-07-01",
+   "file": "item/264645322",
+   "thumb": "thumbs/264645322.png"
+  },
+  {
    "id": 264988911,
    "type": "hat",
    "name": "Hungry Shark Baseball Cap",
@@ -14725,6 +14761,15 @@
    "thumb": "thumbs/277831362.png"
   },
   {
+   "id": 277960356,
+   "type": "hat",
+   "name": "Lt. Maverick Scout part",
+   "creator": "Roblox",
+   "created": "2015-07-31",
+   "file": "item/277960356",
+   "thumb": "thumbs/277960356.png"
+  },
+  {
    "id": 277857132,
    "type": "hat",
    "name": "Obvious Spy Cap",
@@ -14732,6 +14777,15 @@
    "created": "2015-07-31",
    "file": "item/277857132",
    "thumb": "thumbs/277857132.png"
+  },
+  {
+   "id": 278009235,
+   "type": "hat",
+   "name": "Interplanetary Fighter part",
+   "creator": "Roblox",
+   "created": "2015-08-01",
+   "file": "item/278009235",
+   "thumb": "thumbs/278009235.png"
   },
   {
    "id": 283751593,
@@ -14779,6 +14833,78 @@
    "thumb": "thumbs/286512740.png"
   },
   {
+   "id": 292046315,
+   "type": "hat",
+   "name": "Magical Unicorn part",
+   "creator": "Roblox",
+   "created": "2015-08-31",
+   "file": "item/292046315",
+   "thumb": "thumbs/292046315.png"
+  },
+  {
+   "id": 292020534,
+   "type": "hat",
+   "name": "Woodland Archer part",
+   "creator": "Roblox",
+   "created": "2015-08-31",
+   "file": "item/292020534",
+   "thumb": "thumbs/292020534.png"
+  },
+  {
+   "id": 293281246,
+   "type": "hat",
+   "name": "Adventurous Archer of the Forbidden Forest part",
+   "creator": "Roblox",
+   "created": "2015-09-04",
+   "file": "item/293281246",
+   "thumb": "thumbs/293281246.png"
+  },
+  {
+   "id": 293236908,
+   "type": "hat",
+   "name": "RBX-90: The Party Bot part",
+   "creator": "Roblox",
+   "created": "2015-09-04",
+   "file": "item/293236908",
+   "thumb": "thumbs/293236908.png"
+  },
+  {
+   "id": 293304122,
+   "type": "hat",
+   "name": "Ezebel: The Pirate Queen part",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "file": "item/293304122",
+   "thumb": "thumbs/293304122.png"
+  },
+  {
+   "id": 293300054,
+   "type": "hat",
+   "name": "Hayley: The Tech Mage part",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "file": "item/293300054",
+   "thumb": "thumbs/293300054.png"
+  },
+  {
+   "id": 293283836,
+   "type": "hat",
+   "name": "Lion Knight part",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "file": "item/293283836",
+   "thumb": "thumbs/293283836.png"
+  },
+  {
+   "id": 293309861,
+   "type": "hat",
+   "name": "Berrik: The Boxer part",
+   "creator": "Roblox",
+   "created": "2015-09-11",
+   "file": "item/293309861",
+   "thumb": "thumbs/293309861.png"
+  },
+  {
    "id": 298084461,
    "type": "hat",
    "name": "Mauve Mauler",
@@ -14797,6 +14923,42 @@
    "thumb": "thumbs/298084053.png"
   },
   {
+   "id": 302071305,
+   "type": "hat",
+   "name": "Dark Skeleton part",
+   "creator": "Roblox",
+   "created": "2015-10-01",
+   "file": "item/302071305",
+   "thumb": "thumbs/302071305.png"
+  },
+  {
+   "id": 302030435,
+   "type": "hat",
+   "name": "Vampire Hunter part",
+   "creator": "Roblox",
+   "created": "2015-10-01",
+   "file": "item/302030435",
+   "thumb": "thumbs/302030435.png"
+  },
+  {
+   "id": 315617116,
+   "type": "hat",
+   "name": "Creature From the Blox Lagoon part",
+   "creator": "Roblox",
+   "created": "2015-10-30",
+   "file": "item/315617116",
+   "thumb": "thumbs/315617116.png"
+  },
+  {
+   "id": 315566185,
+   "type": "hat",
+   "name": "Electrowarrior part",
+   "creator": "Roblox",
+   "created": "2015-10-30",
+   "file": "item/315566185",
+   "thumb": "thumbs/315566185.png"
+  },
+  {
    "id": 315550773,
    "type": "hat",
    "name": "Slimehead",
@@ -14813,6 +14975,15 @@
    "created": "2015-10-30",
    "file": "item/315550843",
    "thumb": "thumbs/315550843.png"
+  },
+  {
+   "id": 319643599,
+   "type": "hat",
+   "name": "Disenchanted Korblox Squire part",
+   "creator": "Roblox",
+   "created": "2015-11-14",
+   "file": "item/319643599",
+   "thumb": "thumbs/319643599.png"
   },
   {
    "id": 319642066,
@@ -14842,6 +15013,15 @@
    "thumb": "thumbs/321570270.png"
   },
   {
+   "id": 323477117,
+   "type": "hat",
+   "name": "Andromeda Explorer part",
+   "creator": "Roblox",
+   "created": "2015-11-25",
+   "file": "item/323477117",
+   "thumb": "thumbs/323477117.png"
+  },
+  {
    "id": 323419570,
    "type": "hat",
    "name": "Giant Flower Hat",
@@ -14858,6 +15038,24 @@
    "created": "2015-11-25",
    "file": "item/323420528",
    "thumb": "thumbs/323420528.png"
+  },
+  {
+   "id": 325757796,
+   "type": "hat",
+   "name": "Bigfoot Boarder part",
+   "creator": "Roblox",
+   "created": "2015-12-01",
+   "file": "item/325757796",
+   "thumb": "thumbs/325757796.png"
+  },
+  {
+   "id": 325754844,
+   "type": "hat",
+   "name": "Captain Snowbeard part",
+   "creator": "Roblox",
+   "created": "2015-12-01",
+   "file": "item/325754844",
+   "thumb": "thumbs/325754844.png"
   },
   {
    "id": 327318670,
@@ -14977,6 +15175,24 @@
    "thumb": "thumbs/335134524.png"
   },
   {
+   "id": 343616457,
+   "type": "hat",
+   "name": "Rogue Space Assassin part",
+   "creator": "Roblox",
+   "created": "2016-01-16",
+   "file": "item/343616457",
+   "thumb": "thumbs/343616457.png"
+  },
+  {
+   "id": 346688445,
+   "type": "hat",
+   "name": "Redcliff Rogue part",
+   "creator": "Roblox",
+   "created": "2016-01-23",
+   "file": "item/346688445",
+   "thumb": "thumbs/346688445.png"
+  },
+  {
    "id": 356214819,
    "type": "hat",
    "name": "8-Bit Wizard",
@@ -14984,6 +15200,15 @@
    "created": "2016-01-30",
    "file": "item/356214819",
    "thumb": "thumbs/356214819.png"
+  },
+  {
+   "id": 357833155,
+   "type": "hat",
+   "name": "Menacing Mage part",
+   "creator": "Roblox",
+   "created": "2016-02-01",
+   "file": "item/357833155",
+   "thumb": "thumbs/357833155.png"
   },
   {
    "id": 362030420,
@@ -15011,6 +15236,15 @@
    "created": "2016-02-18",
    "file": "item/365633222",
    "thumb": "thumbs/365633222.png"
+  },
+  {
+   "id": 375829360,
+   "type": "hat",
+   "name": "01010010 Enforcer part",
+   "creator": "Roblox",
+   "created": "2016-03-01",
+   "file": "item/375829360",
+   "thumb": "thumbs/375829360.png"
   },
   {
    "id": 375821870,
@@ -15067,6 +15301,15 @@
    "thumb": "thumbs/391490061.png"
   },
   {
+   "id": 392055228,
+   "type": "hat",
+   "name": "Red Retro Robot part",
+   "creator": "Roblox",
+   "created": "2016-04-02",
+   "file": "item/392055228",
+   "thumb": "thumbs/392055228.png"
+  },
+  {
    "id": 398674411,
    "type": "hat",
    "name": "Black Iron Antlers",
@@ -15083,6 +15326,24 @@
    "created": "2016-04-22",
    "file": "item/402302385",
    "thumb": "thumbs/402302385.png"
+  },
+  {
+   "id": 405992151,
+   "type": "hat",
+   "name": "Captain Rampage part",
+   "creator": "Roblox",
+   "created": "2016-04-28",
+   "file": "item/405992151",
+   "thumb": "thumbs/405992151.png"
+  },
+  {
+   "id": 405996864,
+   "type": "hat",
+   "name": "Deep Sea Explorer part",
+   "creator": "Roblox",
+   "created": "2016-04-28",
+   "file": "item/405996864",
+   "thumb": "thumbs/405996864.png"
   },
   {
    "id": 409738859,
@@ -15148,6 +15409,15 @@
    "thumb": "thumbs/417457461.png"
   },
   {
+   "id": 420161569,
+   "type": "hat",
+   "name": "Crimson Claw: The Vengeful part",
+   "creator": "Roblox",
+   "created": "2016-05-25",
+   "file": "item/420161569",
+   "thumb": "thumbs/420161569.png"
+  },
+  {
    "id": 425117435,
    "type": "hat",
    "name": "Fancy Black Cowboy Hat",
@@ -15155,6 +15425,60 @@
    "created": "2016-06-02",
    "file": "item/425117435",
    "thumb": "thumbs/425117435.png"
+  },
+  {
+   "id": 431042797,
+   "type": "hat",
+   "name": "Autumn Elf part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/431042797",
+   "thumb": "thumbs/431042797.png"
+  },
+  {
+   "id": 467899662,
+   "type": "hat",
+   "name": "Bruin Fortune Hunter part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/467899662",
+   "thumb": "thumbs/467899662.png"
+  },
+  {
+   "id": 431045644,
+   "type": "hat",
+   "name": "Captain Party Pirate part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/431045644",
+   "thumb": "thumbs/431045644.png"
+  },
+  {
+   "id": 431038411,
+   "type": "hat",
+   "name": "Captain Summer part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/431038411",
+   "thumb": "thumbs/431038411.png"
+  },
+  {
+   "id": 431044492,
+   "type": "hat",
+   "name": "The Reaper part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/431044492",
+   "thumb": "thumbs/431044492.png"
+  },
+  {
+   "id": 431047114,
+   "type": "hat",
+   "name": "Winter Adventurer part",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "file": "item/431047114",
+   "thumb": "thumbs/431047114.png"
   },
   {
    "id": 435114562,
@@ -15220,6 +15544,15 @@
    "thumb": "thumbs/445114029.png"
   },
   {
+   "id": 444458867,
+   "type": "hat",
+   "name": "Sea Sorcerer part",
+   "creator": "Roblox",
+   "created": "2016-06-30",
+   "file": "item/444458867",
+   "thumb": "thumbs/444458867.png"
+  },
+  {
    "id": 450556649,
    "type": "hat",
    "name": "Friendly Raccoon",
@@ -15236,6 +15569,24 @@
    "created": "2016-07-14",
    "file": "item/456226220",
    "thumb": "thumbs/456226220.png"
+  },
+  {
+   "id": 467859276,
+   "type": "hat",
+   "name": "Shadow Archer part",
+   "creator": "Roblox",
+   "created": "2016-07-29",
+   "file": "item/467859276",
+   "thumb": "thumbs/467859276.png"
+  },
+  {
+   "id": 478704681,
+   "type": "hat",
+   "name": "All-Seeing Golem part",
+   "creator": "Roblox",
+   "created": "2016-08-13",
+   "file": "item/478704681",
+   "thumb": "thumbs/478704681.png"
   },
   {
    "id": 489176525,
@@ -15283,6 +15634,24 @@
    "thumb": "thumbs/498751331.png"
   },
   {
+   "id": 502447499,
+   "type": "hat",
+   "name": "The Golden Robloxian part",
+   "creator": "Roblox",
+   "created": "2016-09-13",
+   "file": "item/502447499",
+   "thumb": "thumbs/502447499.png"
+  },
+  {
+   "id": 502448745,
+   "type": "hat",
+   "name": "Richard, Redcliff King part",
+   "creator": "Roblox",
+   "created": "2016-09-14",
+   "file": "item/502448745",
+   "thumb": "thumbs/502448745.png"
+  },
+  {
    "id": 507792339,
    "type": "hat",
    "name": "8-Bit Neon Animal Hoodie",
@@ -15299,6 +15668,15 @@
    "created": "2016-09-22",
    "file": "item/507783603",
    "thumb": "thumbs/507783603.png"
+  },
+  {
+   "id": 512422199,
+   "type": "hat",
+   "name": "Dark Summoner part",
+   "creator": "Roblox",
+   "created": "2016-09-29",
+   "file": "item/512422199",
+   "thumb": "thumbs/512422199.png"
   },
   {
    "id": 511982542,
@@ -15373,6 +15751,15 @@
    "thumb": "thumbs/534488204.png"
   },
   {
+   "id": 535104370,
+   "type": "hat",
+   "name": "Neon Ninja part",
+   "creator": "Roblox",
+   "created": "2016-11-01",
+   "file": "item/535104370",
+   "thumb": "thumbs/535104370.png"
+  },
+  {
    "id": 542163408,
    "type": "hat",
    "name": "8-Bit Baseball Cap",
@@ -15409,6 +15796,15 @@
    "thumb": "thumbs/553970961.png"
   },
   {
+   "id": 561843177,
+   "type": "hat",
+   "name": "Everfrost Wizard part",
+   "creator": "Roblox",
+   "created": "2016-12-01",
+   "file": "item/561843177",
+   "thumb": "thumbs/561843177.png"
+  },
+  {
    "id": 562493075,
    "type": "hat",
    "name": "Candy Styles Scarf and Hat",
@@ -15425,6 +15821,24 @@
    "created": "2016-12-03",
    "file": "item/563294036",
    "thumb": "thumbs/563294036.png"
+  },
+  {
+   "id": 583046072,
+   "type": "hat",
+   "name": "Polar Warrior part",
+   "creator": "Roblox",
+   "created": "2016-12-22",
+   "file": "item/583046072",
+   "thumb": "thumbs/583046072.png"
+  },
+  {
+   "id": 583014161,
+   "type": "hat",
+   "name": "Snow Knight part",
+   "creator": "Roblox",
+   "created": "2016-12-22",
+   "file": "item/583014161",
+   "thumb": "thumbs/583014161.png"
   },
   {
    "id": 583153791,
@@ -16183,6 +16597,42 @@
    "thumb": "thumbs/144076512.png"
   },
   {
+   "id": 301811027,
+   "type": "pants",
+   "name": "Casey part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301811027",
+   "thumb": "thumbs/301811027.png"
+  },
+  {
+   "id": 301810800,
+   "type": "pants",
+   "name": "Claire part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301810800",
+   "thumb": "thumbs/301810800.png"
+  },
+  {
+   "id": 301811279,
+   "type": "pants",
+   "name": "John part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301811279",
+   "thumb": "thumbs/301811279.png"
+  },
+  {
+   "id": 301810423,
+   "type": "pants",
+   "name": "Lin part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301810423",
+   "thumb": "thumbs/301810423.png"
+  },
+  {
    "id": 301811432,
    "type": "pants",
    "name": "Oakley Pants",
@@ -16190,6 +16640,15 @@
    "created": "2015-09-30",
    "file": "item/301811432",
    "thumb": "thumbs/301811432.png"
+  },
+  {
+   "id": 301810602,
+   "type": "pants",
+   "name": "Serena part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301810602",
+   "thumb": "thumbs/301810602.png"
   },
   {
    "id": 313129618,
@@ -19387,6 +19846,42 @@
    "thumb": "thumbs/176086705.png"
   },
   {
+   "id": 301809497,
+   "type": "shirt",
+   "name": "Casey part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301809497",
+   "thumb": "thumbs/301809497.png"
+  },
+  {
+   "id": 301808824,
+   "type": "shirt",
+   "name": "Claire part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301808824",
+   "thumb": "thumbs/301808824.png"
+  },
+  {
+   "id": 301809996,
+   "type": "shirt",
+   "name": "John part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301809996",
+   "thumb": "thumbs/301809996.png"
+  },
+  {
+   "id": 301806786,
+   "type": "shirt",
+   "name": "Lin part",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "file": "item/301806786",
+   "thumb": "thumbs/301806786.png"
+  },
+  {
    "id": 301810204,
    "type": "shirt",
    "name": "Oakley Shirt",
@@ -22103,6 +22598,2228 @@
    "created": "2013-01-11",
    "file": "item/103331460",
    "thumb": "thumbs/103331460.png"
+  },
+  {
+   "id": 85,
+   "type": "package",
+   "name": "Polar Warrior",
+   "creator": "Roblox",
+   "created": "2016-12-22",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 583241230
+    },
+    {
+     "part": 2,
+     "asset": 583235378
+    },
+    {
+     "part": 3,
+     "asset": 583236759
+    },
+    {
+     "part": 4,
+     "asset": 583238294
+    },
+    {
+     "part": 5,
+     "asset": 583240266
+    }
+   ],
+   "extras": [
+    {
+     "id": 583046072,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-85.png"
+  },
+  {
+   "id": 86,
+   "type": "package",
+   "name": "Snow Knight",
+   "creator": "Roblox",
+   "created": "2016-12-22",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 583019449
+    },
+    {
+     "part": 2,
+     "asset": 583015149
+    },
+    {
+     "part": 3,
+     "asset": 583016641
+    },
+    {
+     "part": 4,
+     "asset": 583017792
+    },
+    {
+     "part": 5,
+     "asset": 583018751
+    }
+   ],
+   "extras": [
+    {
+     "id": 583014161,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-86.png"
+  },
+  {
+   "id": 87,
+   "type": "package",
+   "name": "Everfrost Wizard",
+   "creator": "Roblox",
+   "created": "2016-12-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 561844884
+    },
+    {
+     "part": 2,
+     "asset": 561843510
+    },
+    {
+     "part": 3,
+     "asset": 561843774
+    },
+    {
+     "part": 4,
+     "asset": 561844403
+    },
+    {
+     "part": 5,
+     "asset": 561844690
+    }
+   ],
+   "extras": [
+    {
+     "id": 561843177,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-87.png"
+  },
+  {
+   "id": 88,
+   "type": "package",
+   "name": "Neon Ninja",
+   "creator": "Roblox",
+   "created": "2016-11-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 535105964
+    },
+    {
+     "part": 2,
+     "asset": 535105064
+    },
+    {
+     "part": 3,
+     "asset": 535105322
+    },
+    {
+     "part": 4,
+     "asset": 535105569
+    },
+    {
+     "part": 5,
+     "asset": 535105742
+    }
+   ],
+   "extras": [
+    {
+     "id": 535104370,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-88.png"
+  },
+  {
+   "id": 89,
+   "type": "package",
+   "name": "Dark Summoner",
+   "creator": "Roblox",
+   "created": "2016-09-29",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 512425000
+    },
+    {
+     "part": 2,
+     "asset": 512422732
+    },
+    {
+     "part": 3,
+     "asset": 512423254
+    },
+    {
+     "part": 4,
+     "asset": 512424508
+    },
+    {
+     "part": 5,
+     "asset": 512424730
+    }
+   ],
+   "extras": [
+    {
+     "id": 512422199,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-89.png"
+  },
+  {
+   "id": 90,
+   "type": "package",
+   "name": "Richard, Redcliff King",
+   "creator": "Roblox",
+   "created": "2016-09-14",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 502449166
+    },
+    {
+     "part": 2,
+     "asset": 502448834
+    },
+    {
+     "part": 3,
+     "asset": 502448933
+    },
+    {
+     "part": 4,
+     "asset": 502449009
+    },
+    {
+     "part": 5,
+     "asset": 502449091
+    }
+   ],
+   "extras": [
+    {
+     "id": 502448745,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-90.png"
+  },
+  {
+   "id": 91,
+   "type": "package",
+   "name": "The Golden Robloxian",
+   "creator": "Roblox",
+   "created": "2016-09-13",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 502448370
+    },
+    {
+     "part": 2,
+     "asset": 502448009
+    },
+    {
+     "part": 3,
+     "asset": 502448162
+    },
+    {
+     "part": 4,
+     "asset": 502448231
+    },
+    {
+     "part": 5,
+     "asset": 502448293
+    }
+   ],
+   "extras": [
+    {
+     "id": 502447499,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-91.png"
+  },
+  {
+   "id": 94,
+   "type": "package",
+   "name": "Hunter of the Leaves",
+   "creator": "Roblox",
+   "created": "2016-09-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 492976176
+    },
+    {
+     "part": 2,
+     "asset": 492971275
+    },
+    {
+     "part": 3,
+     "asset": 492975251
+    },
+    {
+     "part": 4,
+     "asset": 492975806
+    },
+    {
+     "part": 5,
+     "asset": 492975971
+    }
+   ],
+   "extras": [
+    {
+     "id": 492970806,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-94.png"
+  },
+  {
+   "id": 95,
+   "type": "package",
+   "name": "All-Seeing Golem",
+   "creator": "Roblox",
+   "created": "2016-08-13",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 478706842
+    },
+    {
+     "part": 2,
+     "asset": 478705033
+    },
+    {
+     "part": 3,
+     "asset": 478705536
+    },
+    {
+     "part": 4,
+     "asset": 478705993
+    },
+    {
+     "part": 5,
+     "asset": 478706555
+    }
+   ],
+   "extras": [
+    {
+     "id": 478704681,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-95.png"
+  },
+  {
+   "id": 96,
+   "type": "package",
+   "name": "Shadow Archer",
+   "creator": "Roblox",
+   "created": "2016-07-29",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 467862120
+    },
+    {
+     "part": 2,
+     "asset": 467860457
+    },
+    {
+     "part": 3,
+     "asset": 467860964
+    },
+    {
+     "part": 4,
+     "asset": 467861418
+    },
+    {
+     "part": 5,
+     "asset": 467861751
+    }
+   ],
+   "extras": [
+    {
+     "id": 467859276,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-96.png"
+  },
+  {
+   "id": 97,
+   "type": "package",
+   "name": "Sea Sorcerer",
+   "creator": "Roblox",
+   "created": "2016-06-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 444461275
+    },
+    {
+     "part": 2,
+     "asset": 444459880
+    },
+    {
+     "part": 3,
+     "asset": 444460335
+    },
+    {
+     "part": 4,
+     "asset": 444460642
+    },
+    {
+     "part": 5,
+     "asset": 444461017
+    }
+   ],
+   "extras": [
+    {
+     "id": 444458867,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-97.png"
+  },
+  {
+   "id": 98,
+   "type": "package",
+   "name": "Winter Adventurer",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431046935
+    },
+    {
+     "part": 2,
+     "asset": 431046344
+    },
+    {
+     "part": 3,
+     "asset": 431046466
+    },
+    {
+     "part": 4,
+     "asset": 431046591
+    },
+    {
+     "part": 5,
+     "asset": 431046790
+    }
+   ],
+   "extras": [
+    {
+     "id": 431047114,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-98.png"
+  },
+  {
+   "id": 99,
+   "type": "package",
+   "name": "Captain Party Pirate",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431045379
+    },
+    {
+     "part": 2,
+     "asset": 431044875
+    },
+    {
+     "part": 3,
+     "asset": 431044966
+    },
+    {
+     "part": 4,
+     "asset": 431045116
+    },
+    {
+     "part": 5,
+     "asset": 431045241
+    }
+   ],
+   "extras": [
+    {
+     "id": 431045644,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-99.png"
+  },
+  {
+   "id": 100,
+   "type": "package",
+   "name": "The Reaper",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431044237
+    },
+    {
+     "part": 2,
+     "asset": 431043565
+    },
+    {
+     "part": 3,
+     "asset": 431043773
+    },
+    {
+     "part": 4,
+     "asset": 431043984
+    },
+    {
+     "part": 5,
+     "asset": 431044102
+    }
+   ],
+   "extras": [
+    {
+     "id": 431044492,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-100.png"
+  },
+  {
+   "id": 101,
+   "type": "package",
+   "name": "Autumn Elf",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431042656
+    },
+    {
+     "part": 2,
+     "asset": 431041075
+    },
+    {
+     "part": 3,
+     "asset": 431041815
+    },
+    {
+     "part": 4,
+     "asset": 431042305
+    },
+    {
+     "part": 5,
+     "asset": 431042455
+    }
+   ],
+   "extras": [
+    {
+     "id": 431042797,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-101.png"
+  },
+  {
+   "id": 102,
+   "type": "package",
+   "name": "Bruin Fortune Hunter",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431040595
+    },
+    {
+     "part": 2,
+     "asset": 431039370
+    },
+    {
+     "part": 3,
+     "asset": 431040086
+    },
+    {
+     "part": 4,
+     "asset": 431040243
+    },
+    {
+     "part": 5,
+     "asset": 431040405
+    }
+   ],
+   "extras": [
+    {
+     "id": 467899662,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-102.png"
+  },
+  {
+   "id": 103,
+   "type": "package",
+   "name": "Captain Summer",
+   "creator": "Roblox",
+   "created": "2016-06-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 431038222
+    },
+    {
+     "part": 2,
+     "asset": 431037049
+    },
+    {
+     "part": 3,
+     "asset": 431037650
+    },
+    {
+     "part": 4,
+     "asset": 431037900
+    },
+    {
+     "part": 5,
+     "asset": 431038017
+    }
+   ],
+   "extras": [
+    {
+     "id": 431038411,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-103.png"
+  },
+  {
+   "id": 104,
+   "type": "package",
+   "name": "Crimson Claw: The Vengeful",
+   "creator": "Roblox",
+   "created": "2016-05-25",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 420162751
+    },
+    {
+     "part": 2,
+     "asset": 420161777
+    },
+    {
+     "part": 3,
+     "asset": 420162092
+    },
+    {
+     "part": 4,
+     "asset": 420162419
+    },
+    {
+     "part": 5,
+     "asset": 420162591
+    }
+   ],
+   "extras": [
+    {
+     "id": 420161569,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-104.png"
+  },
+  {
+   "id": 105,
+   "type": "package",
+   "name": "Deep Sea Explorer",
+   "creator": "Roblox",
+   "created": "2016-04-28",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 405999724
+    },
+    {
+     "part": 2,
+     "asset": 405997097
+    },
+    {
+     "part": 3,
+     "asset": 405997343
+    },
+    {
+     "part": 4,
+     "asset": 405999297
+    },
+    {
+     "part": 5,
+     "asset": 405999589
+    }
+   ],
+   "extras": [
+    {
+     "id": 405996864,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-105.png"
+  },
+  {
+   "id": 106,
+   "type": "package",
+   "name": "Captain Rampage",
+   "creator": "Roblox",
+   "created": "2016-04-28",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 405995284
+    },
+    {
+     "part": 2,
+     "asset": 405992314
+    },
+    {
+     "part": 3,
+     "asset": 405992939
+    },
+    {
+     "part": 4,
+     "asset": 405994943
+    },
+    {
+     "part": 5,
+     "asset": 405995106
+    }
+   ],
+   "extras": [
+    {
+     "id": 405992151,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-106.png"
+  },
+  {
+   "id": 107,
+   "type": "package",
+   "name": "Red Retro Robot",
+   "creator": "Roblox",
+   "created": "2016-04-02",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 392056891
+    },
+    {
+     "part": 2,
+     "asset": 392055858
+    },
+    {
+     "part": 3,
+     "asset": 392056137
+    },
+    {
+     "part": 4,
+     "asset": 392056503
+    },
+    {
+     "part": 5,
+     "asset": 392056681
+    }
+   ],
+   "extras": [
+    {
+     "id": 392055228,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-107.png"
+  },
+  {
+   "id": 108,
+   "type": "package",
+   "name": "ROBLOX Girl",
+   "creator": "Roblox",
+   "created": "2016-03-02",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 376547767
+    },
+    {
+     "part": 2,
+     "asset": 376547633
+    },
+    {
+     "part": 3,
+     "asset": 376547341
+    },
+    {
+     "part": 4,
+     "asset": 376546668
+    },
+    {
+     "part": 5,
+     "asset": 376547092
+    }
+   ],
+   "extras": [],
+   "thumb": "thumbs/bundle-108.png"
+  },
+  {
+   "id": 109,
+   "type": "package",
+   "name": "ROBLOX Boy",
+   "creator": "Roblox",
+   "created": "2016-03-02",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 376532000
+    },
+    {
+     "part": 2,
+     "asset": 376530220
+    },
+    {
+     "part": 3,
+     "asset": 376531012
+    },
+    {
+     "part": 4,
+     "asset": 376531300
+    },
+    {
+     "part": 5,
+     "asset": 376531703
+    }
+   ],
+   "extras": [],
+   "thumb": "thumbs/bundle-109.png"
+  },
+  {
+   "id": 110,
+   "type": "package",
+   "name": "Hiro the Hero",
+   "creator": "Roblox",
+   "created": "2016-03-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 375833722
+    },
+    {
+     "part": 2,
+     "asset": 375833133
+    },
+    {
+     "part": 3,
+     "asset": 375833272
+    },
+    {
+     "part": 4,
+     "asset": 375833373
+    },
+    {
+     "part": 5,
+     "asset": 375833548
+    }
+   ],
+   "extras": [
+    {
+     "id": 375832435,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-110.png"
+  },
+  {
+   "id": 111,
+   "type": "package",
+   "name": "01010010 Enforcer",
+   "creator": "Roblox",
+   "created": "2016-03-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 375827548
+    },
+    {
+     "part": 2,
+     "asset": 375826272
+    },
+    {
+     "part": 3,
+     "asset": 375826670
+    },
+    {
+     "part": 4,
+     "asset": 375826958
+    },
+    {
+     "part": 5,
+     "asset": 375827238
+    }
+   ],
+   "extras": [
+    {
+     "id": 375829360,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-111.png"
+  },
+  {
+   "id": 112,
+   "type": "package",
+   "name": "Initiate of Glorious Flight",
+   "creator": "Roblox",
+   "created": "2016-02-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 357837086
+    },
+    {
+     "part": 2,
+     "asset": 357836287
+    },
+    {
+     "part": 3,
+     "asset": 357836580
+    },
+    {
+     "part": 4,
+     "asset": 357836715
+    },
+    {
+     "part": 5,
+     "asset": 357836900
+    }
+   ],
+   "extras": [
+    {
+     "id": 357836022,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-112.png"
+  },
+  {
+   "id": 113,
+   "type": "package",
+   "name": "Menacing Mage",
+   "creator": "Roblox",
+   "created": "2016-02-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 357833824
+    },
+    {
+     "part": 2,
+     "asset": 357833375
+    },
+    {
+     "part": 3,
+     "asset": 357833502
+    },
+    {
+     "part": 4,
+     "asset": 357833620
+    },
+    {
+     "part": 5,
+     "asset": 357833721
+    }
+   ],
+   "extras": [
+    {
+     "id": 357833155,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-113.png"
+  },
+  {
+   "id": 114,
+   "type": "package",
+   "name": "Redcliff Rogue",
+   "creator": "Roblox",
+   "created": "2016-01-23",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 346689558
+    },
+    {
+     "part": 2,
+     "asset": 346688815
+    },
+    {
+     "part": 3,
+     "asset": 346688977
+    },
+    {
+     "part": 4,
+     "asset": 346689159
+    },
+    {
+     "part": 5,
+     "asset": 346689429
+    }
+   ],
+   "extras": [
+    {
+     "id": 346688445,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-114.png"
+  },
+  {
+   "id": 115,
+   "type": "package",
+   "name": "Rogue Space Assassin",
+   "creator": "Roblox",
+   "created": "2016-01-16",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 343616293
+    },
+    {
+     "part": 2,
+     "asset": 343614830
+    },
+    {
+     "part": 3,
+     "asset": 343615010
+    },
+    {
+     "part": 4,
+     "asset": 343615631
+    },
+    {
+     "part": 5,
+     "asset": 343616092
+    }
+   ],
+   "extras": [
+    {
+     "id": 343616457,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-115.png"
+  },
+  {
+   "id": 116,
+   "type": "package",
+   "name": "Bigfoot Boarder",
+   "creator": "Roblox",
+   "created": "2015-12-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 325759164
+    },
+    {
+     "part": 2,
+     "asset": 325758700
+    },
+    {
+     "part": 3,
+     "asset": 325758823
+    },
+    {
+     "part": 4,
+     "asset": 325758963
+    },
+    {
+     "part": 5,
+     "asset": 325759061
+    }
+   ],
+   "extras": [
+    {
+     "id": 325757796,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-116.png"
+  },
+  {
+   "id": 117,
+   "type": "package",
+   "name": "Captain Snowbeard",
+   "creator": "Roblox",
+   "created": "2015-12-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 325757085
+    },
+    {
+     "part": 2,
+     "asset": 325756362
+    },
+    {
+     "part": 3,
+     "asset": 325756694
+    },
+    {
+     "part": 4,
+     "asset": 325756834
+    },
+    {
+     "part": 5,
+     "asset": 325756965
+    }
+   ],
+   "extras": [
+    {
+     "id": 325754844,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-117.png"
+  },
+  {
+   "id": 118,
+   "type": "package",
+   "name": "Andromeda Explorer",
+   "creator": "Roblox",
+   "created": "2015-11-25",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 323478754
+    },
+    {
+     "part": 2,
+     "asset": 323478156
+    },
+    {
+     "part": 3,
+     "asset": 323478259
+    },
+    {
+     "part": 4,
+     "asset": 323478407
+    },
+    {
+     "part": 5,
+     "asset": 323478559
+    }
+   ],
+   "extras": [
+    {
+     "id": 323477117,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-118.png"
+  },
+  {
+   "id": 119,
+   "type": "package",
+   "name": "Disenchanted Korblox Squire",
+   "creator": "Roblox",
+   "created": "2015-11-14",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 319647309
+    },
+    {
+     "part": 2,
+     "asset": 319643763
+    },
+    {
+     "part": 3,
+     "asset": 319644079
+    },
+    {
+     "part": 4,
+     "asset": 319646960
+    },
+    {
+     "part": 5,
+     "asset": 319647143
+    }
+   ],
+   "extras": [
+    {
+     "id": 319643599,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-119.png"
+  },
+  {
+   "id": 120,
+   "type": "package",
+   "name": "Creature From the Blox Lagoon",
+   "creator": "Roblox",
+   "created": "2015-10-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 315617913
+    },
+    {
+     "part": 2,
+     "asset": 315617307
+    },
+    {
+     "part": 3,
+     "asset": 315617411
+    },
+    {
+     "part": 4,
+     "asset": 315617547
+    },
+    {
+     "part": 5,
+     "asset": 315617730
+    }
+   ],
+   "extras": [
+    {
+     "id": 315617116,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-120.png"
+  },
+  {
+   "id": 121,
+   "type": "package",
+   "name": "Party Executive",
+   "creator": "Roblox",
+   "created": "2015-10-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 315576964
+    },
+    {
+     "part": 2,
+     "asset": 315576115
+    },
+    {
+     "part": 3,
+     "asset": 315576342
+    },
+    {
+     "part": 4,
+     "asset": 315576461
+    },
+    {
+     "part": 5,
+     "asset": 315576819
+    }
+   ],
+   "extras": [
+    {
+     "id": 315574554,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-121.png"
+  },
+  {
+   "id": 122,
+   "type": "package",
+   "name": "Electrowarrior",
+   "creator": "Roblox",
+   "created": "2015-10-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 315572775
+    },
+    {
+     "part": 2,
+     "asset": 315566313
+    },
+    {
+     "part": 3,
+     "asset": 315566590
+    },
+    {
+     "part": 4,
+     "asset": 315566674
+    },
+    {
+     "part": 5,
+     "asset": 315570915
+    }
+   ],
+   "extras": [
+    {
+     "id": 315566185,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-122.png"
+  },
+  {
+   "id": 123,
+   "type": "package",
+   "name": "Dark Skeleton",
+   "creator": "Roblox",
+   "created": "2015-10-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 302064126
+    },
+    {
+     "part": 2,
+     "asset": 302063900
+    },
+    {
+     "part": 3,
+     "asset": 302063962
+    },
+    {
+     "part": 4,
+     "asset": 302064012
+    },
+    {
+     "part": 5,
+     "asset": 302064078
+    }
+   ],
+   "extras": [
+    {
+     "id": 302071305,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-123.png"
+  },
+  {
+   "id": 124,
+   "type": "package",
+   "name": "Vampire Hunter",
+   "creator": "Roblox",
+   "created": "2015-10-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 302032118
+    },
+    {
+     "part": 2,
+     "asset": 302031209
+    },
+    {
+     "part": 3,
+     "asset": 302031739
+    },
+    {
+     "part": 4,
+     "asset": 302031937
+    },
+    {
+     "part": 5,
+     "asset": 302032033
+    }
+   ],
+   "extras": [
+    {
+     "id": 302030435,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-124.png"
+  },
+  {
+   "id": 125,
+   "type": "package",
+   "name": "Oakley",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301826032
+    },
+    {
+     "part": 2,
+     "asset": 301824684
+    },
+    {
+     "part": 3,
+     "asset": 301825492
+    },
+    {
+     "part": 4,
+     "asset": 301825699
+    },
+    {
+     "part": 5,
+     "asset": 301825891
+    }
+   ],
+   "extras": [
+    {
+     "id": 301810204,
+     "type": "shirt"
+    },
+    {
+     "id": 301811432,
+     "type": "pants"
+    },
+    {
+     "id": 301819935,
+     "type": "hair"
+    },
+    {
+     "id": 301820724,
+     "type": "face"
+    }
+   ],
+   "thumb": "thumbs/bundle-125.png"
+  },
+  {
+   "id": 126,
+   "type": "package",
+   "name": "John",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301826032
+    },
+    {
+     "part": 2,
+     "asset": 301824684
+    },
+    {
+     "part": 3,
+     "asset": 301825492
+    },
+    {
+     "part": 4,
+     "asset": 301825699
+    },
+    {
+     "part": 5,
+     "asset": 301825891
+    }
+   ],
+   "extras": [
+    {
+     "id": 301809996,
+     "type": "shirt"
+    },
+    {
+     "id": 301811279,
+     "type": "pants"
+    },
+    {
+     "id": 301819845,
+     "type": "hair"
+    },
+    {
+     "id": 301820684,
+     "type": "back"
+    }
+   ],
+   "thumb": "thumbs/bundle-126.png"
+  },
+  {
+   "id": 127,
+   "type": "package",
+   "name": "Casey",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301826032
+    },
+    {
+     "part": 2,
+     "asset": 301824684
+    },
+    {
+     "part": 3,
+     "asset": 301825492
+    },
+    {
+     "part": 4,
+     "asset": 301825699
+    },
+    {
+     "part": 5,
+     "asset": 301825891
+    }
+   ],
+   "extras": [
+    {
+     "id": 301809497,
+     "type": "shirt"
+    },
+    {
+     "id": 301811027,
+     "type": "pants"
+    },
+    {
+     "id": 301819154,
+     "type": "hair"
+    },
+    {
+     "id": 301820642,
+     "type": "face"
+    }
+   ],
+   "thumb": "thumbs/bundle-127.png"
+  },
+  {
+   "id": 128,
+   "type": "package",
+   "name": "Claire",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301824116
+    },
+    {
+     "part": 2,
+     "asset": 301822804
+    },
+    {
+     "part": 3,
+     "asset": 301822975
+    },
+    {
+     "part": 4,
+     "asset": 301823492
+    },
+    {
+     "part": 5,
+     "asset": 301823806
+    }
+   ],
+   "extras": [
+    {
+     "id": 301808824,
+     "type": "shirt"
+    },
+    {
+     "id": 301810800,
+     "type": "pants"
+    },
+    {
+     "id": 301819020,
+     "type": "hair"
+    },
+    {
+     "id": 301820599,
+     "type": "face"
+    }
+   ],
+   "thumb": "thumbs/bundle-128.png"
+  },
+  {
+   "id": 129,
+   "type": "package",
+   "name": "Serena",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301824116
+    },
+    {
+     "part": 2,
+     "asset": 301822804
+    },
+    {
+     "part": 3,
+     "asset": 301822975
+    },
+    {
+     "part": 4,
+     "asset": 301823492
+    },
+    {
+     "part": 5,
+     "asset": 301823806
+    }
+   ],
+   "extras": [
+    {
+     "id": 301807898,
+     "type": "shirt"
+    },
+    {
+     "id": 301810602,
+     "type": "pants"
+    },
+    {
+     "id": 301818806,
+     "type": "hair"
+    },
+    {
+     "id": 301820523,
+     "type": "back"
+    }
+   ],
+   "thumb": "thumbs/bundle-129.png"
+  },
+  {
+   "id": 130,
+   "type": "package",
+   "name": "Lin",
+   "creator": "Roblox",
+   "created": "2015-09-30",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 301824116
+    },
+    {
+     "part": 2,
+     "asset": 301822804
+    },
+    {
+     "part": 3,
+     "asset": 301822975
+    },
+    {
+     "part": 4,
+     "asset": 301823492
+    },
+    {
+     "part": 5,
+     "asset": 301823806
+    }
+   ],
+   "extras": [
+    {
+     "id": 301806786,
+     "type": "shirt"
+    },
+    {
+     "id": 301810423,
+     "type": "pants"
+    },
+    {
+     "id": 301818464,
+     "type": "hair"
+    },
+    {
+     "id": 301820310,
+     "type": "face"
+    }
+   ],
+   "thumb": "thumbs/bundle-130.png"
+  },
+  {
+   "id": 131,
+   "type": "package",
+   "name": "Furious Finn",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293314890
+    },
+    {
+     "part": 2,
+     "asset": 293314654
+    },
+    {
+     "part": 3,
+     "asset": 293314719
+    },
+    {
+     "part": 4,
+     "asset": 293314757
+    },
+    {
+     "part": 5,
+     "asset": 293314821
+    }
+   ],
+   "extras": [
+    {
+     "id": 187847813,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-131.png"
+  },
+  {
+   "id": 132,
+   "type": "package",
+   "name": "Krezak: The Legend",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293314173
+    },
+    {
+     "part": 2,
+     "asset": 293313838
+    },
+    {
+     "part": 3,
+     "asset": 293313963
+    },
+    {
+     "part": 4,
+     "asset": 293314037
+    },
+    {
+     "part": 5,
+     "asset": 293314084
+    }
+   ],
+   "extras": [
+    {
+     "id": 293313637,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-132.png"
+  },
+  {
+   "id": 133,
+   "type": "package",
+   "name": "Berrik: The Boxer",
+   "creator": "Roblox",
+   "created": "2015-09-11",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293311078
+    },
+    {
+     "part": 2,
+     "asset": 295647914
+    },
+    {
+     "part": 3,
+     "asset": 293310954
+    },
+    {
+     "part": 4,
+     "asset": 293310397
+    },
+    {
+     "part": 5,
+     "asset": 293310628
+    }
+   ],
+   "extras": [
+    {
+     "id": 293309861,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-133.png"
+  },
+  {
+   "id": 134,
+   "type": "package",
+   "name": "Ezebel: The Pirate Queen",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293304529
+    },
+    {
+     "part": 2,
+     "asset": 293304241
+    },
+    {
+     "part": 3,
+     "asset": 293304334
+    },
+    {
+     "part": 4,
+     "asset": 293304414
+    },
+    {
+     "part": 5,
+     "asset": 293304477
+    }
+   ],
+   "extras": [
+    {
+     "id": 293304122,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-134.png"
+  },
+  {
+   "id": 135,
+   "type": "package",
+   "name": "Amelia: The Phoenix",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293303282
+    },
+    {
+     "part": 2,
+     "asset": 293302685
+    },
+    {
+     "part": 3,
+     "asset": 293302780
+    },
+    {
+     "part": 4,
+     "asset": 293302959
+    },
+    {
+     "part": 5,
+     "asset": 293303106
+    }
+   ],
+   "extras": [
+    {
+     "id": 293302583,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-135.png"
+  },
+  {
+   "id": 136,
+   "type": "package",
+   "name": "Hayley: The Tech Mage",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293302013
+    },
+    {
+     "part": 2,
+     "asset": 293300963
+    },
+    {
+     "part": 3,
+     "asset": 293301104
+    },
+    {
+     "part": 4,
+     "asset": 293301721
+    },
+    {
+     "part": 5,
+     "asset": 293301935
+    }
+   ],
+   "extras": [
+    {
+     "id": 293300054,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-136.png"
+  },
+  {
+   "id": 137,
+   "type": "package",
+   "name": "Lion Knight",
+   "creator": "Roblox",
+   "created": "2015-09-05",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293284254
+    },
+    {
+     "part": 2,
+     "asset": 293283962
+    },
+    {
+     "part": 3,
+     "asset": 293284083
+    },
+    {
+     "part": 4,
+     "asset": 293284125
+    },
+    {
+     "part": 5,
+     "asset": 293284200
+    }
+   ],
+   "extras": [
+    {
+     "id": 293283836,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-137.png"
+  },
+  {
+   "id": 138,
+   "type": "package",
+   "name": "Adventurous Archer of the Forbidden Forest",
+   "creator": "Roblox",
+   "created": "2015-09-04",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293283186
+    },
+    {
+     "part": 2,
+     "asset": 293281556
+    },
+    {
+     "part": 3,
+     "asset": 293282026
+    },
+    {
+     "part": 4,
+     "asset": 293282231
+    },
+    {
+     "part": 5,
+     "asset": 293282440
+    }
+   ],
+   "extras": [
+    {
+     "id": 293281246,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-138.png"
+  },
+  {
+   "id": 139,
+   "type": "package",
+   "name": "RBX-90: The Party Bot",
+   "creator": "Roblox",
+   "created": "2015-09-04",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293237792
+    },
+    {
+     "part": 2,
+     "asset": 293237053
+    },
+    {
+     "part": 3,
+     "asset": 293237244
+    },
+    {
+     "part": 4,
+     "asset": 293237350
+    },
+    {
+     "part": 5,
+     "asset": 293237507
+    }
+   ],
+   "extras": [
+    {
+     "id": 293236908,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-139.png"
+  },
+  {
+   "id": 140,
+   "type": "package",
+   "name": "Lillian: Shield of the Kingdom",
+   "creator": "Roblox",
+   "created": "2015-09-04",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 293227319
+    },
+    {
+     "part": 2,
+     "asset": 293226720
+    },
+    {
+     "part": 3,
+     "asset": 293226806
+    },
+    {
+     "part": 4,
+     "asset": 293226935
+    },
+    {
+     "part": 5,
+     "asset": 293227110
+    }
+   ],
+   "extras": [
+    {
+     "id": 293226581,
+     "type": "hair"
+    }
+   ],
+   "thumb": "thumbs/bundle-140.png"
+  },
+  {
+   "id": 141,
+   "type": "package",
+   "name": "Magical Unicorn",
+   "creator": "Roblox",
+   "created": "2015-08-31",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 292047655
+    },
+    {
+     "part": 2,
+     "asset": 292047001
+    },
+    {
+     "part": 3,
+     "asset": 292047095
+    },
+    {
+     "part": 4,
+     "asset": 292047265
+    },
+    {
+     "part": 5,
+     "asset": 292047389
+    }
+   ],
+   "extras": [
+    {
+     "id": 292046315,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-141.png"
+  },
+  {
+   "id": 142,
+   "type": "package",
+   "name": "Woodland Archer",
+   "creator": "Roblox",
+   "created": "2015-08-31",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 292045741
+    },
+    {
+     "part": 2,
+     "asset": 292044925
+    },
+    {
+     "part": 3,
+     "asset": 292045146
+    },
+    {
+     "part": 4,
+     "asset": 292045357
+    },
+    {
+     "part": 5,
+     "asset": 292045510
+    }
+   ],
+   "extras": [
+    {
+     "id": 292020534,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-142.png"
+  },
+  {
+   "id": 143,
+   "type": "package",
+   "name": "Interplanetary Fighter",
+   "creator": "Roblox",
+   "created": "2015-08-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 278010862
+    },
+    {
+     "part": 2,
+     "asset": 278009651
+    },
+    {
+     "part": 3,
+     "asset": 278010386
+    },
+    {
+     "part": 4,
+     "asset": 278010500
+    },
+    {
+     "part": 5,
+     "asset": 278010644
+    }
+   ],
+   "extras": [
+    {
+     "id": 278009235,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-143.png"
+  },
+  {
+   "id": 144,
+   "type": "package",
+   "name": "Lt. Maverick Scout",
+   "creator": "Roblox",
+   "created": "2015-07-31",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 277962746
+    },
+    {
+     "part": 2,
+     "asset": 277961421
+    },
+    {
+     "part": 3,
+     "asset": 277961619
+    },
+    {
+     "part": 4,
+     "asset": 277962286
+    },
+    {
+     "part": 5,
+     "asset": 277962531
+    }
+   ],
+   "extras": [
+    {
+     "id": 277960356,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-144.png"
+  },
+  {
+   "id": 145,
+   "type": "package",
+   "name": "ROBLOX Racer",
+   "creator": "Roblox",
+   "created": "2015-07-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 264647979
+    },
+    {
+     "part": 2,
+     "asset": 264646801
+    },
+    {
+     "part": 3,
+     "asset": 264647273
+    },
+    {
+     "part": 4,
+     "asset": 264647430
+    },
+    {
+     "part": 5,
+     "asset": 264647679
+    }
+   ],
+   "extras": [
+    {
+     "id": 264645322,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-145.png"
+  },
+  {
+   "id": 146,
+   "type": "package",
+   "name": "All Terrain Driver",
+   "creator": "Roblox",
+   "created": "2015-07-01",
+   "parts": [
+    {
+     "part": 1,
+     "asset": 264643274
+    },
+    {
+     "part": 2,
+     "asset": 264642402
+    },
+    {
+     "part": 3,
+     "asset": 264642670
+    },
+    {
+     "part": 4,
+     "asset": 264643015
+    },
+    {
+     "part": 5,
+     "asset": 264643149
+    }
+   ],
+   "extras": [
+    {
+     "id": 264641178,
+     "type": "hat"
+    }
+   ],
+   "thumb": "thumbs/bundle-146.png"
   }
  ]
 }

@@ -49,7 +49,8 @@ needs a physical keyboard.
 - Places from `web/places/` are listed automatically; drop in a file and press
   **Refresh**.
 - An avatar catalog with 2016-era shirts, t-shirts, pants, hats, hair,
-  shoulder and back accessories and classic faces, plus body colours. Worn
+  shoulder and back accessories, classic faces and the classic body packages
+  ("Man", "Woman", ROBLOX Girl, ...), plus body colours. Worn
   items persist in the browser and are applied to your character. It works on
   static hosting too: meshes and textures are packed with the site and only
   the items you actually wear are downloaded, then cached by the browser.

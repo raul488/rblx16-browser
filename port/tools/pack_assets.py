@@ -40,6 +40,14 @@ def catalog_ids():
         items = json.load(f).get("items", [])
     ids = set()
     for item in items:
+        if item.get("type") == "package":
+            for part in item.get("parts", []):
+                if part.get("asset"):
+                    ids.add(str(part["asset"]))
+            for extra in item.get("extras", []):
+                if extra.get("type") == "packhead":
+                    ids.add(str(extra["id"]))
+            continue
         if item.get("type") not in MODEL_TYPES:
             continue
         try:
