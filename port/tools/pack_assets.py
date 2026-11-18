@@ -42,8 +42,19 @@ def catalog_ids():
     for item in items:
         if item.get("type") == "package":
             for part in item.get("parts", []):
-                if part.get("asset"):
-                    ids.add(str(part["asset"]))
+                if not part.get("asset"):
+                    continue
+                asset = str(part["asset"])
+                ids.add(asset)
+                # The part model wraps the real mesh and texture by id; the
+                # engine asks for those at runtime, so they must be packed too.
+                path = os.path.join(CATALOG, "item", asset)
+                if os.path.isfile(path):
+                    try:
+                        with open(path, "rb") as f:
+                            ids.update(m.decode() for m in ASSET_REF.findall(f.read()))
+                    except OSError:
+                        pass
             for extra in item.get("extras", []):
                 if extra.get("type") == "packhead":
                     ids.add(str(extra["id"]))
