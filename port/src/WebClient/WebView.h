@@ -22,6 +22,16 @@ public:
 
     bool ready() const { return view != nullptr; }
 
+    // The renderer's own "the scene is built and its assets have arrived"
+    // signals; the same test RenderView uses before returning a thumbnail.
+    struct SceneStatus {
+        bool settled = true;
+        size_t clusterQueue = 0;
+        bool waitingForAssets = false;
+        bool texturesPending = false;
+    };
+    SceneStatus sceneStatus() const;
+
 private:
     GLFWwindow* window = nullptr;
     RBX::ViewBase* view = nullptr;

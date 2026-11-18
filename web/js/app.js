@@ -34,8 +34,7 @@
   }
 
   const login = $("login");
-  const placeList = $("placeList");
-  const status = $("status");
+  const placeList = $("placeList");  const status = $("status");
   const playBtn = $("playBtn");
   const openFile = $("openFile");
   const userName = $("userName");
@@ -92,9 +91,7 @@
 
   async function loadPlaces() {
     try {
-      const response = await fetch("places", { cache: "no-store" });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const list = await response.json();
+      const list = await fetchPlaceList();
       const bundled = (Array.isArray(list) ? list : []).map((p) => ({
         id: "place:" + p.file,
         name: p.name,
@@ -115,6 +112,20 @@
     } catch (e) {
       setStatus("Could not list web/places/. Open a local place file instead.", true);
     }
+  }
+
+  // web/serve.py answers /places by scanning web/places; static hosts (GitHub
+  // Pages) use places/manifest.json, which link.py regenerates on every build.
+  async function fetchPlaceList() {
+    for (const url of ["places", "places/manifest.json"]) {
+      try {
+        const response = await fetch(url, { cache: "no-store" });
+        if (!response.ok) continue;
+        const list = await response.json();
+        if (Array.isArray(list)) return list;
+      } catch (_) {}
+    }
+    throw new Error("no place list");
   }
 
   async function readFileBytes(p) {
@@ -244,6 +255,27 @@
   window.rblxRecordStop = stopRecording;
   window.rblxToggleFullscreen = toggleFullscreen;
 
+  // link.py splits the 110 MB preloaded content pack into parts under 100 MB,
+  // the largest file a static host like GitHub Pages accepts. Reassemble it
+  // into a Blob the Emscripten loader fetches as if it were rblx2016.data.
+  async function preloadDataPackage() {
+    try {
+      const listing = await fetch("js/rblx2016.data.parts.json", { cache: "no-store" });
+      if (!listing.ok) return null;
+      const parts = (await listing.json()).parts;
+      if (!Array.isArray(parts) || !parts.length) return null;
+      const buffers = await Promise.all(parts.map(async (part) => {
+        const response = await fetch(part);
+        if (!response.ok) throw new Error("missing " + part);
+        return response.arrayBuffer();
+      }));
+      return URL.createObjectURL(new Blob(buffers));
+    } catch (e) {
+      console.warn("[rbx2016] using the single data package:", e.message);
+      return null;
+    }
+  }
+
   async function ensureModule() {
     if (engine) return engine;
     if (!modulePromise) {
@@ -262,9 +294,17 @@
         if (typeof window.createRBLX2016Module !== "function") {
           throw new Error("js/rblx2016.js loaded, but createRBLX2016Module is missing.");
         }
+        if (typeof SharedArrayBuffer === "undefined") {
+          throw new Error(
+            "This page is not cross-origin isolated, so the threaded engine cannot start. " +
+            "Serve it with web/serve.py, or over HTTPS where coi-serviceworker.js can " +
+            "register (GitHub Pages).");
+        }
+        const dataUrl = await preloadDataPackage();
         const mod = await window.createRBLX2016Module({
           canvas: $("gameCanvas"),
           locateFile: (path, prefix) => {
+            if (dataUrl && path.endsWith(".data")) return dataUrl;
             if (prefix) return prefix + path;
             return new URL("js/" + path, location.href).href;
           },
@@ -275,6 +315,18 @@
         });
         if (typeof mod._rblx_test_thread === "function") {
           console.log("[rbx2016] thread test:", mod.ccall("rblx_test_thread", "number", [], []));
+        }
+        // Log the renderer, so a software rasterizer is recognisable in bug
+        // reports.
+        try {
+          const canvas = $("gameCanvas");
+          const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+          const info = gl && gl.getExtension("WEBGL_debug_renderer_info");
+          console.log("[rbx2016] webgl:", !gl ? "none" : (info
+            ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL)
+            : gl.getParameter(gl.RENDERER)));
+        } catch (e) {
+          console.log("[rbx2016] webgl: unavailable", e && e.message);
         }
         return mod;
       })().catch((e) => { modulePromise = null; throw e; });
@@ -300,6 +352,7 @@
     const name = saveName();
     playing = true;
     playBtn.disabled = true;
+    closeCatalog();
     login.style.pointerEvents = "none";
     fatal.style.display = "none";
     setStatus("Starting the 2016 engine…");
@@ -326,6 +379,11 @@
       if (rc !== 0) throw new Error("rblx_start_place returned " + rc);
       try {
         mod.ccall("rblx_set_unlock_fps", null, ["number"], [unlockFps.checked ? 1 : 0]);
+      } catch (_) {}
+      // Hand the worn catalog items to the engine; it applies them when the
+      // local character spawns.
+      try {
+        mod.ccall("rblx_set_avatar", null, ["string"], [avatarSpec()]);
       } catch (_) {}
       if (typeof mod._rblx_has_view === "function" && mod.ccall("rblx_has_view", "number", [], [])) {
         const frame = () => {
@@ -680,7 +738,14 @@
     const save = $("cookieSave");
     const clear = $("cookieClear");
     if (!input || !save || !clear) return;
-    fetch("cookie", { cache: "no-store" }).then(r => r.json()).then(showCookieStatus).catch(() => showCookieStatus(null));
+    fetch("cookie", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no server"))))
+      .then(showCookieStatus)
+      .catch(() => {
+        // Static hosting has no server-side asset proxy; hide the whole block.
+        const block = input.closest(".tip");
+        if (block) block.style.display = "none";
+      });
     save.addEventListener("click", async () => {
       const value = input.value.trim();
       if (!value) { setStatus("Paste the .ROBLOSECURITY value first.", true); return; }
@@ -705,6 +770,311 @@
     });
   }
 
+  // ---------------------------------------------------------------- catalog
+  // The 2016 avatar files are scraped once into web/catalog by
+  // port/tools/fetch_catalog.py; the page only reads the manifest.
+  const AVATAR_KEY = "rblx2016.avatar";
+  const CATEGORIES = [
+    { id: "", label: "All Categories" },
+    { id: "hat", label: "Hats" },
+    { id: "hair", label: "Hair" },
+    { id: "shoulder", label: "Shoulder" },
+    { id: "back", label: "Back" },
+    { id: "face", label: "Faces" },
+    { id: "shirt", label: "Shirts" },
+    { id: "pants", label: "Pants" },
+    { id: "tshirt", label: "T-Shirts" },
+  ];
+  // Hats, shoulder and back items are all wearable at once.
+  const ACCESSORY_TYPES = ["hat", "hair", "shoulder", "back"];
+  const BODY_SLOTS = ["Head", "Left arm", "Right arm", "Torso", "Left leg", "Right leg"];
+  const BRICK_COLORS = [
+    { n: 24, hex: "#f5cd30", name: "Bright yellow" },
+    { n: 1, hex: "#f2f3f3", name: "White" },
+    { n: 194, hex: "#a3a2a5", name: "Medium stone grey" },
+    { n: 199, hex: "#635f62", name: "Dark stone grey" },
+    { n: 21, hex: "#c4281c", name: "Bright red" },
+    { n: 23, hex: "#0d69ac", name: "Bright blue" },
+    { n: 28, hex: "#287f47", name: "Dark green" },
+    { n: 37, hex: "#4b974b", name: "Bright green" },
+    { n: 106, hex: "#da8541", name: "Bright orange" },
+    { n: 5, hex: "#d7c59a", name: "Brick yellow" },
+    { n: 192, hex: "#694028", name: "Reddish brown" },
+    { n: 217, hex: "#7c5c46", name: "Brown" },
+    { n: 18, hex: "#cc8e69", name: "Nougat" },
+    { n: 102, hex: "#6e99ca", name: "Medium blue" },
+    { n: 119, hex: "#a4bd47", name: "Br. yellowish green" },
+    { n: 101, hex: "#da867a", name: "Medium red" },
+    { n: 9, hex: "#e8bac8", name: "Light reddish violet" },
+    { n: 107, hex: "#008f9c", name: "Bright bluish green" },
+    { n: 2, hex: "#a1a5a2", name: "Grey" },
+    { n: 226, hex: "#fdea8d", name: "Cool yellow" },
+  ];
+  const catalogPage = $("catalog");
+  const catGrid = $("catGrid");
+  const catNote = $("catNote");
+  let catalogItems = null;
+  let catalogCategory = "";
+  let catalogQuery = "";
+  let catalogCreator = "";
+  let detailItem = null;
+  let avatar = loadAvatar();
+
+  function loadAvatar() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(AVATAR_KEY) || "{}") || {}; } catch (_) {}
+    const body = Array.isArray(saved.body) && saved.body.length === 6
+      ? saved.body.map((n) => Number(n) || 24) : [24, 24, 24, 24, 24, 24];
+    const accessories = Array.isArray(saved.accessories) ? saved.accessories
+      : (Array.isArray(saved.hats) ? saved.hats : []);
+    return {
+      shirt: Number(saved.shirt) || 0,
+      pants: Number(saved.pants) || 0,
+      tshirt: Number(saved.tshirt) || 0,
+      face: Number(saved.face) || 0,
+      accessories: accessories.map(Number).filter(Boolean),
+      body,
+    };
+  }
+
+  function saveAvatar() {
+    try { localStorage.setItem(AVATAR_KEY, JSON.stringify(avatar)); } catch (_) {}
+    renderWorn();
+  }
+
+  function isWorn(item) {
+    if (ACCESSORY_TYPES.includes(item.type)) return avatar.accessories.includes(item.id);
+    return avatar[item.type] === item.id;
+  }
+
+  function wear(item) {
+    if (ACCESSORY_TYPES.includes(item.type)) {
+      avatar.accessories = isWorn(item)
+        ? avatar.accessories.filter((id) => id !== item.id)
+        : avatar.accessories.concat(item.id);
+    } else {
+      avatar[item.type] = isWorn(item) ? 0 : item.id;
+    }
+    saveAvatar();
+    renderCatalog();
+    if (detailItem) renderDetail();
+  }
+
+  // The engine applies this list to the local character: one item per clothing
+  // slot, any number of hats, plus the six BodyColors values.
+  function avatarSpec() {
+    const parts = [];
+    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+      if (avatar[kind]) parts.push(kind + ":" + avatar[kind]);
+    }
+    for (const id of avatar.accessories) parts.push("acc:" + id);
+    parts.push("body:" + avatar.body.join(","));
+    return parts.join(";");
+  }
+
+  function itemById(id) {
+    return (catalogItems || []).find((it) => it.id === id) || null;
+  }
+
+  function itemImage(item) {
+    return item.thumb ? "catalog/" + item.thumb : "catalog/" + item.file;
+  }
+
+  function renderWorn() {
+    const worn = [];
+    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+      const item = itemById(avatar[kind]);
+      if (item) worn.push(item);
+    }
+    for (const id of avatar.accessories) {
+      const item = itemById(id);
+      if (item) worn.push(item);
+    }
+    const names = worn.map((it) => it.name);
+    const line = $("wornLine");
+    line.style.display = names.length ? "" : "none";
+    line.textContent = names.length ? "Wearing: " + names.join(", ") : "";
+    $("catWornLine").textContent = names.length ? names.join(", ") : "nothing worn";
+    const bar = $("catWornBar");
+    bar.innerHTML = "";
+    if (!worn.length) {
+      bar.textContent = "You are not wearing anything yet. Click an item to wear it.";
+      return;
+    }
+    const label = document.createElement("span");
+    label.innerHTML = "<b>Wearing:</b>";
+    bar.appendChild(label);
+    for (const item of worn) {
+      const chip = document.createElement("span");
+      chip.textContent = item.name + " ";
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "btn";
+      x.textContent = "x";
+      x.title = "Remove " + item.name;
+      x.addEventListener("click", () => wear(item));
+      chip.appendChild(x);
+      bar.appendChild(chip);
+    }
+  }
+
+  function renderCatalog() {
+    if (!catalogPage.classList.contains("open")) return;
+    const cats = $("catCats");
+    if (!cats.childElementCount) {
+      for (const cat of CATEGORIES) {
+        const link = document.createElement("a");
+        link.textContent = cat.label;
+        link.dataset.id = cat.id;
+        link.tabIndex = 0;
+        link.addEventListener("click", () => {
+          catalogCategory = cat.id;
+          renderCatalog();
+        });
+        link.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          catalogCategory = cat.id;
+          renderCatalog();
+        });
+        cats.appendChild(link);
+      }
+    }
+    for (const link of cats.children) link.classList.toggle("sel", link.dataset.id === catalogCategory);
+
+    catGrid.innerHTML = "";
+    if (!catalogItems) return;
+    if (!catalogItems.length) {
+      catNote.style.display = "block";
+      catNote.innerHTML = "No catalog was scraped yet. Run <code>python3 port/tools/fetch_catalog.py</code>" +
+        " to build <code>web/catalog/</code> from the Roblox website.";
+      return;
+    }
+    catNote.style.display = "none";
+    const query = catalogQuery.toLowerCase();
+    const shown = catalogItems.filter((it) =>
+      (!catalogCategory || it.type === catalogCategory) &&
+      (!catalogCreator || it.creator === catalogCreator) &&
+      (!query || it.name.toLowerCase().includes(query)));
+    if (!shown.length) {
+      catNote.style.display = "block";
+      catNote.textContent = "No items match that filter.";
+      return;
+    }
+    for (const item of shown) {
+      const tile = document.createElement("div");
+      tile.className = "tile" + (isWorn(item) ? " worn" : "");
+      const img = document.createElement("img");
+      img.loading = "lazy";
+      img.src = itemImage(item);
+      img.alt = "";
+      img.addEventListener("error", () => {
+        // Some items have no rendered thumbnail; the template/model still shows.
+        if (!img.dataset.fallback) {
+          img.dataset.fallback = "1";
+          img.src = "catalog/" + item.file;
+        }
+      });
+      const nm = document.createElement("div");
+      nm.className = "nm";
+      nm.textContent = item.name;
+      const cr = document.createElement("div");
+      cr.className = "cr";
+      cr.textContent = "by " + item.creator;
+      const pr = document.createElement("div");
+      pr.className = "pr";
+      pr.textContent = "Your soul";
+      tile.append(img, nm, cr, pr);
+      tile.tabIndex = 0;
+      tile.addEventListener("click", () => openDetail(item));
+      tile.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetail(item);
+        }
+      });
+      catGrid.appendChild(tile);
+    }
+  }
+
+  function renderDetail() {
+    $("catDetailImg").src = itemImage(detailItem);
+    $("catDetailName").textContent = detailItem.name;
+    $("catDetailMeta").textContent = "by " + detailItem.creator +
+      (detailItem.created ? " · " + detailItem.created : "") +
+      " · " + detailItem.type.replace("tshirt", "t-shirt");
+    $("catWear").textContent = isWorn(detailItem) ? "Take off" : "Wear";
+    $("catWear").classList.toggle("wearing", isWorn(detailItem));
+  }
+
+  function openDetail(item) {
+    detailItem = item;
+    renderDetail();
+    $("catDetail").classList.add("open");
+  }
+
+  function closeDetail() {
+    detailItem = null;
+    $("catDetail").classList.remove("open");
+  }
+
+  async function loadCatalog() {
+    if (catalogItems) return;
+    try {
+      const response = await fetch("catalog/manifest.json", { cache: "no-store" });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const manifest = await response.json();
+      catalogItems = (manifest.items || []).filter((it) => it && it.id && it.file);
+    } catch (_) {
+      catalogItems = [];
+    }
+    const creators = [...new Set((catalogItems || []).map((it) => it.creator))].sort();
+    const select = $("catCreator");
+    for (const creator of creators) {
+      const option = document.createElement("option");
+      option.value = creator;
+      option.textContent = creator;
+      select.appendChild(option);
+    }
+    renderWorn();
+    renderCatalog();
+  }
+
+  function buildColourPickers() {
+    const box = $("catColours");
+    BODY_SLOTS.forEach((slot, i) => {
+      const label = document.createElement("label");
+      label.textContent = slot;
+      const select = document.createElement("select");
+      for (const color of BRICK_COLORS) {
+        const option = document.createElement("option");
+        option.value = color.n;
+        option.textContent = color.name;
+        option.style.background = color.hex;
+        select.appendChild(option);
+      }
+      select.value = String(avatar.body[i] || 24);
+      select.addEventListener("change", () => {
+        avatar.body[i] = Number(select.value) || 24;
+        saveAvatar();
+      });
+      label.appendChild(select);
+      box.appendChild(label);
+    });
+  }
+
+  function openCatalog() {
+    catalogPage.classList.add("open");
+    renderWorn();
+    renderCatalog();
+    loadCatalog();
+  }
+
+  function closeCatalog() {
+    catalogPage.classList.remove("open");
+    closeDetail();
+  }
+
   async function boot() {
     try { userName.value = localStorage.getItem("rblx2016.name") || "Player1"; } catch (_) {}
     try { unlockFps.checked = localStorage.getItem("rblx2016.unlockFps") === "1"; } catch (_) {}
@@ -714,6 +1084,29 @@
     userName.addEventListener("input", saveName);
     userName.addEventListener("blur", saveName);
     openFile.addEventListener("change", () => openLocalFile(openFile.files[0]));
+    $("catalogBtn").addEventListener("click", openCatalog);
+    $("catClose").addEventListener("click", closeCatalog);
+    $("catSearch").addEventListener("input", () => {
+      catalogQuery = $("catSearch").value.trim();
+      renderCatalog();
+    });
+    $("catCreator").addEventListener("change", () => {
+      catalogCreator = $("catCreator").value;
+      renderCatalog();
+    });
+    $("catWear").addEventListener("click", () => { if (detailItem) wear(detailItem); });
+    $("catDetailClose").addEventListener("click", closeDetail);
+    $("catDetail").addEventListener("click", (e) => {
+      if (e.target === $("catDetail")) closeDetail();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if ($("catDetail").classList.contains("open")) closeDetail();
+      else if (catalogPage.classList.contains("open")) closeCatalog();
+    });
+    buildColourPickers();
+    renderWorn();
+    loadCatalog();  // keeps the "Wearing:" line on the menu in sync
     $("openFileBtn").addEventListener("click", () => openFile.click());
     $("refreshPlaces").addEventListener("click", () => loadPlaces());
     playBtn.addEventListener("click", play);

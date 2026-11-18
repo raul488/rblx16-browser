@@ -2,6 +2,7 @@
 """Link the compiled 2016 engine objects into a browser Wasm module."""
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -114,7 +115,7 @@ def main() -> int:
         "-sFETCH=1",
         "--preload-file", str(ROOT / "web" / "content") + "@/content",
         "--preload-file", str(ROOT / "web" / "shaders") + "@/shaders",
-        "-sEXPORTED_FUNCTIONS=_rblx_start_place,_rblx_load_place,_rblx_loading_gui_ready,_rblx_stop,_rblx_frame,_rblx_resize,_rblx_has_view,_rblx_last_error,_rblx_test_thread,_rblx_frame_count,_rblx_set_camera,_rblx_set_fullscreen,_rblx_set_unlock_fps,_rblx_touch_event,_rblx_debug_player,_rblx_key_event,_rblx_mouse_button,_rblx_mouse_move,_rblx_mouse_wheel,_rblx_force_character,_rblx_run_script,_rblx_debug_joints,_rblx_debug_anim,_rblx_debug_asset,_rblx_debug_gui,_rblx_audio_ended,_malloc,_free",
+        "-sEXPORTED_FUNCTIONS=_rblx_start_place,_rblx_load_place,_rblx_loading_gui_ready,_rblx_stop,_rblx_frame,_rblx_resize,_rblx_has_view,_rblx_last_error,_rblx_test_thread,_rblx_frame_count,_rblx_set_camera,_rblx_set_fullscreen,_rblx_set_unlock_fps,_rblx_set_avatar,_rblx_touch_event,_rblx_debug_player,_rblx_key_event,_rblx_mouse_button,_rblx_mouse_move,_rblx_mouse_wheel,_rblx_force_character,_rblx_run_script,_rblx_debug_joints,_rblx_debug_anim,_rblx_debug_asset,_rblx_debug_gui,_rblx_audio_ended,_malloc,_free",
         "-sEXPORTED_RUNTIME_METHODS=ccall,cwrap,HEAPU8,HEAPU32",
     ]
     r = subprocess.run(link, env=env())
@@ -122,7 +123,43 @@ def main() -> int:
         print("link failed", r.returncode, file=sys.stderr)
         return r.returncode
     print("linked", WEB / "rblx2016.js", WEB / "rblx2016.wasm")
+    split_data_package()
+    write_place_manifest()
     return 0
+
+
+def split_data_package(chunk=48 * 1024 * 1024):
+    """Static hosts cap a single file at 100 MB; the page concatenates parts."""
+    data = WEB / "rblx2016.data"
+    if not data.is_file():
+        return
+    for old in WEB.glob("rblx2016.data.part*"):
+        old.unlink()
+    parts = []
+    with data.open("rb") as f:
+        while True:
+            block = f.read(chunk)
+            if not block:
+                break
+            part = WEB / f"rblx2016.data.part{len(parts) + 1}"
+            part.write_bytes(block)
+            parts.append("js/" + part.name)
+    (WEB / "rblx2016.data.parts.json").write_text(json.dumps({"parts": parts}))
+    data.unlink()
+    print("preloaded package:", len(parts), "parts")
+
+
+def write_place_manifest():
+    """places/manifest.json lets a static host list the bundled places."""
+    places = ROOT / "web" / "places"
+    if not places.is_dir():
+        return
+    entries = [{"name": p.stem, "file": p.name, "bytes": p.stat().st_size}
+               for p in sorted(places.iterdir())
+               if p.suffix.lower() in (".rbxl", ".rbxlx") and p.is_file()]
+    (places / "manifest.json").write_text(json.dumps(entries, indent=1))
+    print("places:", len(entries), "in places/manifest.json")
+    return
 
 
 if __name__ == "__main__":

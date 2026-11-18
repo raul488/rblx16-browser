@@ -12,6 +12,7 @@ rbxassetid:// lookups to Roblox assetdelivery and caches the bytes under
 web/asset-cache, so places can use remote textures, meshes, sounds and
 animations without hitting CORS in the browser.
 """
+import gzip
 import http.server
 import json
 import os
@@ -38,6 +39,8 @@ ASSET_PLACE_ID = os.environ.get("ASSET_PLACE_ID", "").strip()
 ASSET_ID = re.compile(r"^\d{1,20}$")
 MAX_ASSET_BYTES = 64 * 1024 * 1024
 
+CATALOG_DIR = os.path.join(ROOT, "catalog")
+CATALOG_MANIFEST = os.path.join(CATALOG_DIR, "manifest.json")
 
 def current_cookie():
     """Return (token, source) with the same priority the UI shows."""
@@ -106,13 +109,37 @@ def asset_headers():
     return headers
 
 
+def gunzip_if_needed(data: bytes) -> bytes:
+    """assetdelivery sometimes answers gzip without urllib decoding it."""
+    for _ in range(3):
+        if data[:2] != b"\x1f\x8b":
+            break
+        try:
+            unzipped = gzip.decompress(data)
+        except OSError:
+            break
+        if len(unzipped) < 16 or unzipped == data:
+            break
+        data = unzipped
+    return data
+
+
 def fetch_asset(asset_id: str) -> bytes:
     """Return asset bytes, using the on-disk cache when possible."""
     os.makedirs(ASSET_CACHE, exist_ok=True)
     cached = os.path.join(ASSET_CACHE, asset_id)
     if os.path.isfile(cached):
         with open(cached, "rb") as f:
-            return f.read()
+            raw = f.read()
+        data = gunzip_if_needed(raw)
+        if raw[:2] == b"\x1f\x8b" and data[:2] != b"\x1f\x8b":
+            # Old cache entries stored the compressed bytes; replace them.
+            try:
+                with open(cached, "wb") as f:
+                    f.write(data)
+            except OSError:
+                pass
+        return data
 
     url = ASSET_DELIVERY + asset_id
     if ASSET_PLACE_ID.isdigit():
@@ -124,6 +151,7 @@ def fetch_asset(asset_id: str) -> bytes:
         data = response.read(MAX_ASSET_BYTES + 1)
     if len(data) > MAX_ASSET_BYTES:
         raise RuntimeError("asset too large")
+    data = gunzip_if_needed(data)
     if data:
         fd, tmp = tempfile.mkstemp(dir=ASSET_CACHE, prefix=asset_id + ".")
         try:
@@ -135,6 +163,29 @@ def fetch_asset(asset_id: str) -> bytes:
             except OSError: pass
             raise
     return data
+
+
+_catalog_cache = {"stamp": None, "files": {}}
+
+
+def catalog_files():
+    """id -> file path for the scraped avatar catalog (empty if not scraped)."""
+    try:
+        stamp = os.path.getmtime(CATALOG_MANIFEST)
+    except OSError:
+        return {}
+    if _catalog_cache["stamp"] == stamp:
+        return _catalog_cache["files"]
+    try:
+        with open(CATALOG_MANIFEST, encoding="utf-8") as f:
+            items = json.load(f).get("items", [])
+    except (OSError, ValueError):
+        return {}
+    files = {str(item["id"]): os.path.join(CATALOG_DIR, item["file"])
+             for item in items if item.get("file")}
+    _catalog_cache["stamp"] = stamp
+    _catalog_cache["files"] = files
+    return files
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -149,6 +200,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_json(list_places())
         if path in ("/asset", "/asset/"):
             return self.serve_asset()
+        if path.startswith("/catalog/item/"):
+            return self.serve_catalog_item(path.rsplit("/", 1)[-1])
         return super().do_GET()
 
     def do_POST(self):
@@ -215,6 +268,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def serve_catalog_item(self, item_id):
+        """Serve a scraped catalog item by id; the manifest knows the extension."""
+        if not ASSET_ID.match(item_id):
+            self.send_error(400, "invalid item id")
+            return
+        source = catalog_files().get(item_id)
+        if not source or not os.path.isfile(source):
+            self.send_error(404, "catalog item not found")
+            return
+        try:
+            with open(source, "rb") as f:
+                data = f.read()
+        except OSError as exc:
+            self.send_error(500, str(exc))
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/octet-stream")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        self.end_headers()
+        self.wfile.write(data)
 
     def serve_asset(self):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

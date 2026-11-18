@@ -15,6 +15,7 @@
 #include <functional>
 #include <boost/bind.hpp>
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <chrono>
 
@@ -43,10 +44,16 @@
 #include "network/Players.h"
 #include "network/Player.h"
 #include "v8datamodel/PlayerScripts.h"
+#include "v8datamodel/CharacterAppearance.h"
+#include "v8datamodel/Decal.h"
+#include "v8datamodel/Attachment.h"
+#include "v8datamodel/Camera.h"
+#include "util/BrickColor.h"
 #include "script/ScriptContext.h"
 #include "script/CoreScript.h"
 #include "script/script.h"
 #include "WebView.h"
+#include "RenderSettingsItem.h"
 #include "v8xml/Serializer.h"
 #include "security/SecurityContext.h"
 #include "rbx/TaskScheduler.h"
@@ -64,9 +71,22 @@ namespace {
     std::atomic<bool> g_placeParseStarted(false);
     std::atomic<bool> g_placeLoaded(false);
     std::atomic<bool> g_gameLoaded(false);
-    std::atomic<bool> g_gameLoadClockStarted(false);
-    std::chrono::steady_clock::time_point g_placeLoadedAt;
+    std::atomic<bool> g_settleStarted(false);
+    std::atomic<int> g_renderFramesSinceLoad(0);
+    std::atomic<int> g_workspaceParts(0);
+    std::chrono::steady_clock::time_point g_settleAt;
     std::chrono::steady_clock::time_point g_loadStart;
+    // Worn catalog items, "shirt:1;pants:2;acc:3;body:24,..." from the page.
+    std::string g_avatarSpec;
+    std::string g_assetBase;
+    std::atomic<RBX::Instance*> g_avatarCharacter(nullptr);
+    std::atomic<bool> g_avatarBusy(false);
+    // See the camera hand-back in rblx_frame.
+    std::atomic<RBX::Instance*> g_cameraCharacter(nullptr);
+    std::atomic<bool> g_cameraChecked(false);
+    std::chrono::steady_clock::time_point g_characterSeenAt;
+    std::chrono::steady_clock::time_point g_lastCharacterAttempt;
+    int g_characterAttempts = 0;
     bool g_recordingVideo = false;
     bool g_touchEnabled = false;
 }
@@ -92,7 +112,9 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
     g_placeParseStarted.store(false);
     g_placeLoaded.store(false);
     g_gameLoaded.store(false);
-    g_gameLoadClockStarted.store(false);
+    g_settleStarted.store(false);
+    g_renderFramesSinceLoad.store(0);
+    g_workspaceParts.store(0);
     g_pendingPlace.assign(reinterpret_cast<const char*>(data), static_cast<size_t>(size));
     g_loadStart = std::chrono::steady_clock::now();
 
@@ -103,25 +125,23 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
             RBX::StandardOut::singleton()->messageOut.connect(&onStandardOut);
             stdoutHooked = true;
         }
-        // The stock 2016 client ships these in ClientAppSettings.json.
-        // Without the topbar flag Chat resets the GUI inset to 0 and the Lua
-        // topbar stays off-screen. Without the camera flag Camera::step keeps
-        // driving the camera with the C++ Follow logic and overrides the Lua
-        // CameraScript, so right-drag look and zoom do nothing.
+        // From the retail ClientAppSettings.json. Chat resets the GUI inset
+        // without the topbar flag, and C++ Camera::step overrides the Lua
+        // CameraScript without the camera flag.
         FLog::SetValue("UseInGameTopBar", "true");
         FLog::SetValue("UserAllCamerasInLua", "true");
-        // Dismiss the stock loading screen on game.Loaded. Without this the
-        // script waits for ContentProvider's queue to drain, which can stall on
-        // missing/offline content in large places.
+        // Dismiss the stock loading screen on game.Loaded instead of waiting
+        // for ContentProvider's queue, which stalls on offline content.
         FLog::SetValue("UseGameLoadedInLoadingScript", "true");
-        // The adaptive physics throttle exists to shed simulation work on
-        // bandwidth/CPU-limited clients, but its auto mode reacts to scheduler
-        // jitter and randomly halves the simulation rate even at 60 FPS. This
-        // is a local Play Solo client, so keep full-rate physics.
+        // Weld accessories to the character attachment they name, not to the
+        // head.
+        FLog::SetValue("AccessoriesAndAttachments", "true");
+        // Auto throttle reacts to scheduler jitter and halves the simulation
+        // rate; this is local Play Solo, so keep full-rate physics.
         RBX::EThrottle::globalDebugEThrottle = RBX::EThrottle::ThrottleDisabled;
         RBX::ContentProvider::setAssetFolder("/content");
-        // true = start the stock LoadingScript now, so the engine can paint the
-        // real loading GUI before the place is deserialized.
+        // Start the stock LoadingScript immediately so it can paint before
+        // the place is deserialized.
         g_dataModel = RBX::DataModel::createDataModel(true, nullptr, true);
         // The core Settings menu's Leave button uses SetVerb("Exit"), which the
         // native client provides in WindowsClient/GameVerbs.cpp.
@@ -148,6 +168,7 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
             emscripten_run_script("window.rblxToggleFullscreen && window.rblxToggleFullscreen()");
         });
         if (assetBase && *assetBase) {
+            g_assetBase = assetBase;
             if (RBX::ContentProvider* contentProvider = RBX::ServiceProvider::find<RBX::ContentProvider>(g_dataModel.get()))
                 contentProvider->setBaseUrl(assetBase);
         }
@@ -249,6 +270,7 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
 
             RBX::Workspace* ws = dm->getWorkspace();
             size_t parts = ws ? ws->countDescendantsOfType<RBX::PartInstance>() : 0;
+            g_workspaceParts.store(static_cast<int>(parts));
             if (ws && ws->getCamera()) {
                 G3D::Vector3 mn(1e9f, 1e9f, 1e9f), mx(-1e9f, -1e9f, -1e9f);
                 G3D::Vector3 sum(0, 0, 0);
@@ -317,15 +339,216 @@ EMSCRIPTEN_KEEPALIVE int rblx_load_place() {
     }
 }
 
+// ---------------------------------------------------------------- avatar
+// The page owns the catalog and sends the selection as
+// "shirt:1;pants:2;acc:3;body:24,24,24,24,24,24". Everything is worn through
+// Player::LoadCharacterAppearance, which welds accessories and routes the
+// face decal to the head.
+namespace {
+
+struct AvatarEntry {
+    std::string type;
+    long long id = 0;
+};
+
+std::vector<AvatarEntry> parseAvatarSpec(const std::string& spec, int* body) {
+    std::vector<AvatarEntry> entries;
+    for (int i = 0; i < 6; ++i) body[i] = 24;
+    size_t pos = 0;
+    while (pos < spec.size()) {
+        size_t end = spec.find(';', pos);
+        std::string entry = spec.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+        pos = end == std::string::npos ? spec.size() : end + 1;
+        size_t colon = entry.find(':');
+        if (colon == std::string::npos) continue;
+        std::string type = entry.substr(0, colon);
+        std::string value = entry.substr(colon + 1);
+        if (type == "body") {
+            std::istringstream numbers(value);
+            std::string part;
+            int slot = 0;
+            while (slot < 6 && std::getline(numbers, part, ','))
+                body[slot++] = std::atoi(part.c_str());
+            continue;
+        }
+        AvatarEntry e;
+        e.type = type;
+        e.id = std::atoll(value.c_str());
+        if (e.id > 0) entries.push_back(e);
+    }
+    return entries;
+}
+
+std::string avatarUrl(const std::string& base, long long id) {
+    return base + "catalog/item/" + std::to_string(id);
+}
+
+void addCharacterAttachment(RBX::PartInstance* part, const char* name, const G3D::Vector3& offset) {
+    if (!part || part->findFirstChildByName(name)) return;
+    boost::shared_ptr<RBX::Attachment> attachment =
+        RBX::Creatable<RBX::Instance>::create<RBX::Attachment>();
+    attachment->setName(name);
+    RBX::CoordinateFrame frame;
+    frame.translation = offset;
+    attachment->setFrameInPart(frame);
+    attachment->setParent(part);
+}
+
+// R6 characters have no attachment points; accessories weld to them by name.
+void ensureCharacterAttachments(RBX::Humanoid* humanoid) {
+    if (!humanoid) return;
+    if (RBX::PartInstance* head = humanoid->getHeadSlow()) {
+        G3D::Vector3 s = head->getPartSizeXml();
+        addCharacterAttachment(head, "HatAttachment", G3D::Vector3(0, s.y * 0.5f, 0));
+        addCharacterAttachment(head, "HairAttachment", G3D::Vector3(0, s.y * 0.5f + 0.1f, 0));
+        addCharacterAttachment(head, "FaceFrontAttachment", G3D::Vector3(0, 0, -s.z * 0.5f));
+    }
+    if (RBX::PartInstance* torso = humanoid->getVisibleTorsoSlow()) {
+        G3D::Vector3 s = torso->getPartSizeXml();
+        const float hx = s.x * 0.5f, hy = s.y * 0.5f, hz = s.z * 0.5f;
+        addCharacterAttachment(torso, "NeckAttachment", G3D::Vector3(0, hy, 0));
+        addCharacterAttachment(torso, "BodyFrontAttachment", G3D::Vector3(0, 0, -hz));
+        addCharacterAttachment(torso, "BodyBackAttachment", G3D::Vector3(0, 0, hz));
+        addCharacterAttachment(torso, "LeftCollarAttachment", G3D::Vector3(-hx, hy, 0));
+        addCharacterAttachment(torso, "RightCollarAttachment", G3D::Vector3(hx, hy, 0));
+        addCharacterAttachment(torso, "WaistCenterAttachment", G3D::Vector3(0, -hy, 0));
+        addCharacterAttachment(torso, "WaistFrontAttachment", G3D::Vector3(0, -hy, -hz));
+        addCharacterAttachment(torso, "WaistBackAttachment", G3D::Vector3(0, -hy, hz));
+    }
+    if (RBX::PartInstance* arm = humanoid->getLeftArmSlow()) {
+        G3D::Vector3 s = arm->getPartSizeXml();
+        addCharacterAttachment(arm, "LeftShoulderAttachment", G3D::Vector3(0, s.y * 0.5f, 0));
+        addCharacterAttachment(arm, "LeftGripAttachment", G3D::Vector3(0, -s.y * 0.5f, 0));
+    }
+    if (RBX::PartInstance* arm = humanoid->getRightArmSlow()) {
+        G3D::Vector3 s = arm->getPartSizeXml();
+        addCharacterAttachment(arm, "RightShoulderAttachment", G3D::Vector3(0, s.y * 0.5f, 0));
+        addCharacterAttachment(arm, "RightGripAttachment", G3D::Vector3(0, -s.y * 0.5f, 0));
+    }
+}
+
+// Hats and shoulder/back items are engine models, not textures.
+bool isAccessoryModel(const std::string& type) {
+    return type == "hat" || type == "shoulder" || type == "back" || type == "acc";
+}
+
+void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::string& base,
+                     const std::vector<AvatarEntry>& entries, std::array<int, 6> body,
+                     const std::vector<boost::shared_ptr<RBX::Instance>>& hats) {
+    dm->submitTask([base, entries, body, hats](RBX::DataModel* model) {
+        RBX::Network::Players* players = model->find<RBX::Network::Players>();
+        RBX::Network::Player* player = players
+            ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(players->getLocalPlayerDangerous())
+            : nullptr;
+        if (!player || !player->getCharacter()) {
+            g_avatarBusy.store(false);
+            return;
+        }
+        ensureCharacterAttachments(RBX::Humanoid::modelIsCharacter(player->getCharacter()));
+        std::vector<boost::shared_ptr<RBX::Instance>> worn;
+        for (const AvatarEntry& e : entries) {
+            if (isAccessoryModel(e.type)) continue;
+            if (e.type == "shirt") {
+                boost::shared_ptr<RBX::Shirt> item = RBX::Creatable<RBX::Instance>::create<RBX::Shirt>();
+                item->setTemplate(RBX::TextureId(avatarUrl(base, e.id)));
+                worn.push_back(item);
+            } else if (e.type == "pants") {
+                boost::shared_ptr<RBX::Pants> item = RBX::Creatable<RBX::Instance>::create<RBX::Pants>();
+                item->setTemplate(RBX::TextureId(avatarUrl(base, e.id)));
+                worn.push_back(item);
+            } else if (e.type == "tshirt") {
+                boost::shared_ptr<RBX::ShirtGraphic> item =
+                    RBX::Creatable<RBX::Instance>::create<RBX::ShirtGraphic>();
+                RBX::ShirtGraphic::prop_Graphic.setValue(item.get(),
+                    RBX::TextureId(avatarUrl(base, e.id)));
+                worn.push_back(item);
+            } else if (e.type == "face") {
+                boost::shared_ptr<RBX::Decal> item = RBX::Creatable<RBX::Instance>::create<RBX::Decal>();
+                item->setName("face");
+                item->setTexture(RBX::TextureId(avatarUrl(base, e.id)));
+                worn.push_back(item);
+            }
+        }
+        boost::shared_ptr<RBX::BodyColors> colors = RBX::Creatable<RBX::Instance>::create<RBX::BodyColors>();
+        RBX::BodyColors::prop_HeadColor.setValue(colors.get(), RBX::BrickColor(body[0]));
+        RBX::BodyColors::prop_LeftArmColor.setValue(colors.get(), RBX::BrickColor(body[1]));
+        RBX::BodyColors::prop_RightArmColor.setValue(colors.get(), RBX::BrickColor(body[2]));
+        RBX::BodyColors::prop_TorsoColor.setValue(colors.get(), RBX::BrickColor(body[3]));
+        RBX::BodyColors::prop_LeftLegColor.setValue(colors.get(), RBX::BrickColor(body[4]));
+        RBX::BodyColors::prop_RightLegColor.setValue(colors.get(), RBX::BrickColor(body[5]));
+        worn.insert(worn.begin(), colors);
+        for (const boost::shared_ptr<RBX::Instance>& hat : hats) worn.push_back(hat);
+
+        for (const boost::shared_ptr<RBX::Instance>& item : worn) {
+            if (!item) continue;
+            try {
+                player->loadCharacterAppearanceScript(item);
+            } catch (const std::exception& e) {
+                RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
+                    "RBLX2016: avatar item failed: %s", e.what());
+            }
+        }
+        g_avatarCharacter.store(player->getCharacter());
+        g_avatarBusy.store(false);
+        RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+            "RBLX2016: avatar applied (%d items, body %d/%d/%d/%d/%d/%d)",
+            (int)worn.size(), body[0], body[1], body[2], body[3], body[4], body[5]);
+    }, RBX::DataModelJob::Write);
+}
+
+// Models load off the main thread, like the engine's own content fetches.
+void startAvatarApplication(const boost::shared_ptr<RBX::DataModel>& dm,
+                            const std::string& spec, const std::string& base) {
+    if (g_avatarBusy.exchange(true)) return;
+    std::thread([dm, spec, base]() {
+        std::array<int, 6> body;
+        std::vector<AvatarEntry> entries = parseAvatarSpec(spec, body.data());
+        std::vector<boost::shared_ptr<RBX::Instance>> hats;
+        try {
+            RBX::ContentProvider* contentProvider =
+                RBX::ServiceProvider::find<RBX::ContentProvider>(dm.get());
+            for (const AvatarEntry& e : entries) {
+                if (!isAccessoryModel(e.type) || !contentProvider) continue;
+                std::vector<boost::shared_ptr<RBX::Instance>> loaded;
+                try {
+                    contentProvider->blockingLoadInstances(
+                        RBX::ContentId(avatarUrl(base, e.id)), loaded);
+                } catch (const std::exception& ex) {
+                    RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
+                        "RBLX2016: accessory %lld failed: %s", e.id, ex.what());
+                    continue;
+                }
+                for (const boost::shared_ptr<RBX::Instance>& inst : loaded)
+                    if (inst) hats.push_back(inst);
+            }
+        } catch (...) {
+            g_avatarBusy.store(false);
+            return;
+        }
+        try {
+            applyAvatarTask(dm, base, entries, body, hats);
+        } catch (const std::exception& e) {
+            RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
+                "RBLX2016: avatar apply failed: %s", e.what());
+            g_avatarBusy.store(false);
+        }
+    }).detach();
+}
+
+}  // namespace
+
+EMSCRIPTEN_KEEPALIVE void rblx_set_avatar(const char* spec) {
+    g_avatarSpec = spec ? spec : "";
+    g_avatarCharacter.store(nullptr);
+}
+
 EMSCRIPTEN_KEEPALIVE void rblx_frame() {
     rblx_audio_pump();
     if (g_exitRequested.exchange(false))
         emscripten_run_script("window.rblxLeaveGame && window.rblxLeaveGame()");
-    // The place Write task holds the DataModel Write lock while it
-    // deserializes and joins. Waiting for that lock here blocks the browser
-    // main thread (and the tab) for the whole load. The load runs on scheduler
-    // threads, so skip rendering until it finishes; the stock LoadingScript
-    // frame stays on screen and the tab remains responsive.
+    // The place task holds the Write lock while it deserializes and joins, so
+    // taking that lock here would freeze the tab. The load runs on scheduler
+    // threads; skip frames until it finishes.
     if (g_placeParseStarted.load() && !g_placeLoaded.load())
         return;
     if (g_dataModel) {
@@ -339,23 +562,109 @@ EMSCRIPTEN_KEEPALIVE void rblx_frame() {
         // UserInputService, RenderStepped and the camera.
         RBX::DataModel::LegacyLock lock(g_dataModel, RBX::DataModelJob::Write);
         g_dataModel->renderStep(dt);
+        // Places without a SpawnLocation (or with broken spawn scripts) never
+        // get a character; retry auto-load once a second, ten times.
+        if (g_placeLoaded.load() && g_characterAttempts < 10) {
+            RBX::Network::Players* spawnPlayers = g_dataModel->find<RBX::Network::Players>();
+            RBX::Network::Player* spawnPlayer = spawnPlayers
+                ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(
+                      spawnPlayers->getLocalPlayerDangerous()) : nullptr;
+            std::chrono::steady_clock::time_point nowAttempt = std::chrono::steady_clock::now();
+            if (spawnPlayer && !spawnPlayer->getCharacter() &&
+                std::chrono::duration<double>(nowAttempt - g_lastCharacterAttempt).count() > 1.0) {
+                g_lastCharacterAttempt = nowAttempt;
+                ++g_characterAttempts;
+                try {
+                    spawnPlayer->loadCharacter(true, std::string());
+                } catch (const std::exception& e) {
+                    RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
+                        "RBLX2016: character spawn attempt %d failed: %s",
+                        g_characterAttempts, e.what());
+                }
+            }
+        }
+        // Places can leave the camera on a fixed/spectator type and never hand
+        // control back. Restore the stock Custom camera once the character has
+        // been alive briefly; a place that re-asserts its camera still wins.
+        if (RBX::Workspace* cameraWorkspace = g_dataModel->getWorkspace()) {
+            if (RBX::Camera* camera = cameraWorkspace->getCamera()) {
+                RBX::Network::Players* cameraPlayers = g_dataModel->find<RBX::Network::Players>();
+                RBX::Network::Player* cameraPlayer = cameraPlayers
+                    ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(
+                          cameraPlayers->getLocalPlayerDangerous()) : nullptr;
+                RBX::Instance* cameraCharacter = cameraPlayer ? cameraPlayer->getCharacter() : nullptr;
+                if (cameraCharacter != g_cameraCharacter.load()) {
+                    g_cameraCharacter.store(cameraCharacter);
+                    g_cameraChecked.store(false);
+                    g_characterSeenAt = std::chrono::steady_clock::now();
+                }
+                if (cameraCharacter && !g_cameraChecked.load() &&
+                    std::chrono::duration<double>(
+                        std::chrono::steady_clock::now() - g_characterSeenAt).count() > 2.5) {
+                    g_cameraChecked.store(true);
+                    RBX::Humanoid* cameraHumanoid = RBX::Humanoid::modelIsCharacter(cameraCharacter);
+                    if (cameraHumanoid && camera->getCameraType() != RBX::Camera::CUSTOM_CAMERA &&
+                        camera->getCameraSubjectInstanceDangerous() != cameraHumanoid) {
+                        int staleType = (int)camera->getCameraType();
+                        camera->setCameraSubject(cameraHumanoid);
+                        camera->setCameraType(RBX::Camera::CUSTOM_CAMERA);
+                        RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
+                            "RBLX2016: camera was left on type %d, restored Custom", staleType);
+                    }
+                }
+            }
+        }
+        // Wear the catalog avatar as soon as a character exists, and again
+        // after a respawn. Hat models load on a worker thread.
+        if (!g_avatarSpec.empty() && !g_avatarBusy.load()) {
+            RBX::Network::Players* avatarPlayers = g_dataModel->find<RBX::Network::Players>();
+            RBX::Network::Player* avatarPlayer = avatarPlayers
+                ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(
+                      avatarPlayers->getLocalPlayerDangerous()) : nullptr;
+            RBX::Instance* avatarChar = avatarPlayer ? avatarPlayer->getCharacter() : nullptr;
+            if (avatarChar && avatarChar != g_avatarCharacter.load())
+                startAvatarApplication(g_dataModel, g_avatarSpec, g_assetBase);
+        }
         if (g_placeLoaded.load() && !g_gameLoaded.load()) {
-            if (!g_gameLoadClockStarted.exchange(true))
-                g_placeLoadedAt = std::chrono::steady_clock::now();
+            if (!g_settleStarted.exchange(true)) {
+                // Build the initial FastCluster/light-grid scene in one pass
+                // while the stock loading screen is still up, instead of
+                // letting pieces pop in over budgeted frames after game.Loaded.
+                CRenderSettingsItem::singleton().setEagerBulkExecution(true);
+                g_settleAt = std::chrono::steady_clock::now();
+            }
             RBX::Network::Players* players = g_dataModel->find<RBX::Network::Players>();
             RBX::Network::Player* local = players
                 ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(players->getLocalPlayerDangerous()) : nullptr;
             bool hasCharacter = local && local->getCharacter();
-            bool timedOut = std::chrono::duration<double>(std::chrono::steady_clock::now() - g_placeLoadedAt).count() > 8.0;
-            if (hasCharacter || timedOut) {
+            double sinceSettle = std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - g_settleAt).count();
+            bool timedOut = sinceSettle > 8.0;
+            int frames = g_renderFramesSinceLoad.load();
+            rblx2016::WebView::SceneStatus scene = g_view->sceneStatus();
+            // The character appears on the scheduler threads, so wait for it,
+            // then for the renderer to finish building the scene. A place that
+            // never resolves its content must not keep the screen up forever.
+            bool sceneReady = scene.settled && frames >= 2;
+            bool hardTimeout = sinceSettle > 20.0;
+            if ((hasCharacter || timedOut) && (sceneReady || hardTimeout)) {
                 g_gameLoaded.store(true);
                 RBX::StandardOut::singleton()->printf(RBX::MESSAGE_INFO,
-                    "RBLX2016: game loaded (character=%d timeout=%d)", (int)hasCharacter, (int)timedOut);
+                    "RBLX2016: game loaded (character=%d timeout=%d settle=%.0fms frames=%d queue=%u waits=%d textures=%d parts=%d)",
+                    (int)hasCharacter, (int)timedOut, sinceSettle * 1000.0, frames,
+                    (unsigned)scene.clusterQueue, (int)scene.waitingForAssets,
+                    (int)scene.texturesPending, g_workspaceParts.load());
+                CRenderSettingsItem::singleton().setEagerBulkExecution(false);
                 g_dataModel->setIsGameLoaded(true);
             }
         }
     }
-    if (g_view) { g_view->frame(); g_frameCount++;  }
+    if (g_view) {
+        g_view->frame();
+        g_frameCount++;
+        if (g_placeLoaded.load() && !g_gameLoaded.load())
+            g_renderFramesSinceLoad.fetch_add(1);
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE void rblx_resize(int w, int h) {

@@ -3,8 +3,17 @@
 #include <GLFW/glfw3.h>
 #include <cstdio>
 
+#include <boost/unordered_map.hpp>
+#include <boost/unordered_set.hpp>
+
 #include "GfxBase/ViewBase.h"
 #include "GfxBase/RenderSettings.h"
+#include "RenderView.h"
+#include "VisualEngine.h"
+#include "SceneUpdater.h"
+#include "TextureManager.h"
+#include "TextureCompositor.h"
+#include "v8datamodel/ContentProvider.h"
 #include "RenderSettingsItem.h"
 #include "v8datamodel/DataModel.h"
 #include "rbx/rbxTime.h"
@@ -84,6 +93,25 @@ void WebView::frame() {
     view->renderPrepare(&g_nullMetric);
     view->renderPerform(RBX::Time::nowFastSec());
     glfwSwapBuffers(window);
+}
+
+WebView::SceneStatus WebView::sceneStatus() const {
+    SceneStatus status;
+    RBX::Graphics::RenderView* renderView = dynamic_cast<RBX::Graphics::RenderView*>(view);
+    if (!renderView) return status;
+    RBX::Graphics::VisualEngine& engine = renderView->getVisualEngine();
+    RBX::Graphics::SceneUpdater* updater = engine.getSceneUpdater();
+    if (!updater) return status;
+
+    status.clusterQueue = updater->getUpdateQueueSize();
+    status.waitingForAssets = updater->arePartsWaitingForAssets();
+    status.texturesPending = !engine.getTextureCompositor()->isQueueEmpty() ||
+                             !engine.getTextureManager()->isQueueEmpty();
+    bool contentPending = engine.getContentProvider() &&
+                          !engine.getContentProvider()->isRequestQueueEmpty();
+    status.settled = status.clusterQueue == 0 && !status.waitingForAssets &&
+                     !status.texturesPending && !contentPending;
+    return status;
 }
 
 void WebView::resize(int w, int h) {
