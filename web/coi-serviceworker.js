@@ -16,7 +16,7 @@ let assetIndex = null;
 async function packedAssetIds() {
   if (assetIndex) return assetIndex;
   try {
-    const response = await fetch("assets/index.json", { cache: "no-cache" });
+    const response = await fetch(new URL("assets/index.json", self.registration.scope), { cache: "no-cache" });
     assetIndex = new Set(response.ok ? (await response.json()).ids || [] : []);
   } catch (_) {
     assetIndex = new Set();
@@ -45,6 +45,9 @@ function withIsolationHeaders(response) {
 
 async function servePackedAsset(event) {
   const url = new URL(event.request.url);
+  // A project page lives under /<repo>/, so match the path suffix.
+  const path = url.pathname.replace(/\/+$/, "");
+  if (!path.endsWith("/asset")) return null;
   const id = url.searchParams.get("id") || url.searchParams.get("assetId");
   if (!id || !/^\d{1,20}$/.test(id)) return null;
   if (!(await packedAssetIds()).has(id)) return null;
@@ -52,7 +55,7 @@ async function servePackedAsset(event) {
   const cached = await cache.match(event.request);
   if (cached) return cached;
   try {
-    const packed = await fetch("assets/" + id + ".gz");
+    const packed = await fetch(new URL("assets/" + id + ".gz", self.registration.scope));
     if (!packed.ok) return null;
     const body = await gunzip(packed);
     const response = new Response(body, {
@@ -77,11 +80,8 @@ if (typeof window === "undefined") {
     event.respondWith(
       (async () => {
         try {
-          const path = new URL(request.url).pathname;
-          if (path === "/asset" || path === "/asset/") {
-            const packed = await servePackedAsset(event);
-            if (packed) return withIsolationHeaders(packed);
-          }
+          const packed = await servePackedAsset(event);
+          if (packed) return withIsolationHeaders(packed);
           return withIsolationHeaders(await fetch(request));
         } catch (_) {
           return Response.error();
