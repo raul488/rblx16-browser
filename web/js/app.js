@@ -743,9 +743,17 @@
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no server"))))
       .then(showCookieStatus)
       .catch(() => {
-        // Static hosting has no server-side asset proxy; hide the whole block.
-        const block = input.closest(".tip");
-        if (block) block.style.display = "none";
+        // No local server: the field stays visible for reference, but there is
+        // nothing that could use the cookie and it must not sit in this page.
+        $("cookieState").textContent = "needs the local server (python3 web/serve.py)";
+        input.disabled = true;
+        input.placeholder = "set it in the local server instead";
+        save.disabled = true;
+        clear.disabled = true;
+        const note = $("cookieNote");
+        if (note) note.textContent =
+          "This hosted copy has no asset proxy, so the cookie cannot be used here. " +
+          "Run the site with web/serve.py to download rbxassetid content.";
       });
     save.addEventListener("click", async () => {
       const value = input.value.trim();
