@@ -854,7 +854,6 @@
   const AVATAR_KEY = "rblx2016.avatar";
   const CATEGORIES = [
     { id: "", label: "All Categories" },
-    { id: "package", label: "Characters" },
     { id: "hat", label: "Hats" },
     { id: "hair", label: "Hair" },
     { id: "shoulder", label: "Shoulder" },
@@ -911,9 +910,6 @@
       pants: Number(saved.pants) || 0,
       tshirt: Number(saved.tshirt) || 0,
       face: Number(saved.face) || 0,
-      package: Number(saved.package) || 0,
-      packageParts: Array.isArray(saved.packageParts) ? saved.packageParts : [],
-      packageExtras: Array.isArray(saved.packageExtras) ? saved.packageExtras : [],
       accessories: accessories.map(Number).filter(Boolean),
       body,
     };
@@ -934,13 +930,6 @@
       avatar.accessories = isWorn(item)
         ? avatar.accessories.filter((id) => id !== item.id)
         : avatar.accessories.concat(item.id);
-    } else if (item.type === "package") {
-      const on = avatar.package !== item.id;
-      avatar.package = on ? item.id : 0;
-      // Keep the body parts locally: the spec is built at Play time and the
-      // manifest may not be loaded yet.
-      avatar.packageParts = on ? item.parts || [] : [];
-      avatar.packageExtras = on ? item.extras || [] : [];
     } else {
       avatar[item.type] = isWorn(item) ? 0 : item.id;
     }
@@ -956,17 +945,6 @@
     for (const kind of ["shirt", "pants", "tshirt", "face"]) {
       if (avatar[kind]) parts.push(kind + ":" + avatar[kind]);
     }
-    const pkg = itemById(avatar.package);
-    const pkgParts = (pkg && pkg.parts) || avatar.packageParts || [];
-    const pkgExtras = (pkg && pkg.extras) || avatar.packageExtras || [];
-    for (const part of pkgParts) {
-      if (part.mesh) parts.push("pkg:" + part.part + ":" + part.mesh + ":" + (part.texture || 0));
-    }
-    for (const extra of pkgExtras) {
-      if (extra.type === "packhead") parts.push("pkghead:" + extra.id);
-      else if (ACCESSORY_TYPES.includes(extra.type)) parts.push("acc:" + extra.id);
-      else parts.push(extra.type + ":" + extra.id);
-    }
     for (const id of avatar.accessories) parts.push("acc:" + id);
     parts.push("body:" + avatar.body.join(","));
     return parts.join(";");
@@ -977,7 +955,9 @@
   }
 
   function itemImage(item) {
-    return item.thumb ? "catalog/" + item.thumb : "catalog/" + item.file;
+    if (item.thumb) return "catalog/" + item.thumb;
+    if (item.file) return "catalog/" + item.file;
+    return "";  // packages mined from places have no catalog thumbnail
   }
 
   function renderWorn() {
@@ -985,10 +965,6 @@
     for (const kind of ["shirt", "pants", "tshirt", "face"]) {
       const item = itemById(avatar[kind]);
       if (item) worn.push(item);
-    }
-    if (avatar.package) {
-      const pkg = itemById(avatar.package);
-      if (pkg) worn.push(pkg);
     }
     for (const id of avatar.accessories) {
       const item = itemById(id);
@@ -1068,17 +1044,25 @@
     for (const item of shown) {
       const tile = document.createElement("div");
       tile.className = "tile" + (isWorn(item) ? " worn" : "");
-      const img = document.createElement("img");
-      img.loading = "lazy";
-      img.src = itemImage(item);
+      const src = itemImage(item);
+      const img = document.createElement(src ? "img" : "div");
+      if (src) {
+        img.loading = "lazy";
+        img.src = src;
+      } else {
+        img.textContent = (item.name || "?").slice(0, 1);
+        img.style.cssText = "display:flex;align-items:center;justify-content:center;background:#e6ebf1;color:#7d8fa3;font-size:44px";
+      }
       img.alt = "";
-      img.addEventListener("error", () => {
-        // Some items have no rendered thumbnail; the template/model still shows.
-        if (!img.dataset.fallback) {
-          img.dataset.fallback = "1";
-          img.src = "catalog/" + item.file;
-        }
-      });
+      if (src && item.file) {
+        img.addEventListener("error", () => {
+          // Some items have no rendered thumbnail; the template/model still shows.
+          if (!img.dataset.fallback) {
+            img.dataset.fallback = "1";
+            img.src = "catalog/" + item.file;
+          }
+        });
+      }
       const nm = document.createElement("div");
       nm.className = "nm";
       nm.textContent = item.name;
@@ -1104,9 +1088,7 @@
   function renderDetail() {
     $("catDetailImg").src = itemImage(detailItem);
     $("catDetailName").textContent = detailItem.name;
-    const kind = detailItem.type === "package"
-      ? "character · " + (detailItem.parts || []).length + " body parts"
-      : detailItem.type.replace("tshirt", "t-shirt");
+    const kind = detailItem.type.replace("tshirt", "t-shirt");
     $("catDetailMeta").textContent = "by " + detailItem.creator +
       (detailItem.created ? " · " + detailItem.created : "") + " · " + kind;
     $("catWear").textContent = isWorn(detailItem) ? "Take off" : "Wear";
@@ -1131,8 +1113,7 @@
       if (!response.ok) throw new Error("HTTP " + response.status);
       const manifest = await response.json();
       // Packages carry body parts in the manifest instead of a single item file.
-      catalogItems = (manifest.items || []).filter(
-        (it) => it && it.id && (it.file || it.type === "package"));
+      catalogItems = (manifest.items || []).filter((it) => it && it.id && it.file);
     } catch (_) {
       catalogItems = [];
     }
