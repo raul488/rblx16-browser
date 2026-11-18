@@ -854,6 +854,7 @@
   const AVATAR_KEY = "rblx2016.avatar";
   const CATEGORIES = [
     { id: "", label: "All Categories" },
+    { id: "package", label: "Characters" },
     { id: "hat", label: "Hats" },
     { id: "hair", label: "Hair" },
     { id: "shoulder", label: "Shoulder" },
@@ -910,6 +911,9 @@
       pants: Number(saved.pants) || 0,
       tshirt: Number(saved.tshirt) || 0,
       face: Number(saved.face) || 0,
+      package: Number(saved.package) || 0,
+      packageParts: Array.isArray(saved.packageParts) ? saved.packageParts : [],
+      packageExtras: Array.isArray(saved.packageExtras) ? saved.packageExtras : [],
       accessories: accessories.map(Number).filter(Boolean),
       body,
     };
@@ -930,6 +934,13 @@
       avatar.accessories = isWorn(item)
         ? avatar.accessories.filter((id) => id !== item.id)
         : avatar.accessories.concat(item.id);
+    } else if (item.type === "package") {
+      const on = avatar.package !== item.id;
+      avatar.package = on ? item.id : 0;
+      // Keep the body parts locally: the spec is built at Play time and the
+      // manifest may not be loaded yet.
+      avatar.packageParts = on ? item.parts || [] : [];
+      avatar.packageExtras = on ? item.extras || [] : [];
     } else {
       avatar[item.type] = isWorn(item) ? 0 : item.id;
     }
@@ -944,6 +955,17 @@
     const parts = [];
     for (const kind of ["shirt", "pants", "tshirt", "face"]) {
       if (avatar[kind]) parts.push(kind + ":" + avatar[kind]);
+    }
+    const pkg = itemById(avatar.package);
+    const pkgParts = (pkg && pkg.parts) || avatar.packageParts || [];
+    const pkgExtras = (pkg && pkg.extras) || avatar.packageExtras || [];
+    for (const part of pkgParts) {
+      if (part.asset) parts.push("pkg:" + part.asset);
+    }
+    for (const extra of pkgExtras) {
+      if (extra.type === "packhead") parts.push("pkghead:" + extra.id);
+      else if (ACCESSORY_TYPES.includes(extra.type)) parts.push("acc:" + extra.id);
+      else parts.push(extra.type + ":" + extra.id);
     }
     for (const id of avatar.accessories) parts.push("acc:" + id);
     parts.push("body:" + avatar.body.join(","));
@@ -963,6 +985,10 @@
     for (const kind of ["shirt", "pants", "tshirt", "face"]) {
       const item = itemById(avatar[kind]);
       if (item) worn.push(item);
+    }
+    if (avatar.package) {
+      const pkg = itemById(avatar.package);
+      if (pkg) worn.push(pkg);
     }
     for (const id of avatar.accessories) {
       const item = itemById(id);
@@ -1078,9 +1104,11 @@
   function renderDetail() {
     $("catDetailImg").src = itemImage(detailItem);
     $("catDetailName").textContent = detailItem.name;
+    const kind = detailItem.type === "package"
+      ? "character · " + (detailItem.parts || []).length + " body parts"
+      : detailItem.type.replace("tshirt", "t-shirt");
     $("catDetailMeta").textContent = "by " + detailItem.creator +
-      (detailItem.created ? " · " + detailItem.created : "") +
-      " · " + detailItem.type.replace("tshirt", "t-shirt");
+      (detailItem.created ? " · " + detailItem.created : "") + " · " + kind;
     $("catWear").textContent = isWorn(detailItem) ? "Take off" : "Wear";
     $("catWear").classList.toggle("wearing", isWorn(detailItem));
   }
@@ -1102,7 +1130,9 @@
       const response = await fetch("catalog/manifest.json", { cache: "no-store" });
       if (!response.ok) throw new Error("HTTP " + response.status);
       const manifest = await response.json();
-      catalogItems = (manifest.items || []).filter((it) => it && it.id && it.file);
+      // Packages carry body parts in the manifest instead of a single item file.
+      catalogItems = (manifest.items || []).filter(
+        (it) => it && it.id && (it.file || it.type === "package"));
     } catch (_) {
       catalogItems = [];
     }
