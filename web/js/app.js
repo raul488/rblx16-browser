@@ -60,26 +60,45 @@
     return name;
   }
 
+  // The menu tiles show the year the place title names, if it names one.
+  function placeYear(name) {
+    const m = /(?:^|\D)((?:19|20)\d{2})(?!\d)/.exec(name || "");
+    return m ? m[1] : "";
+  }
+
   function renderPlaces() {
     placeList.innerHTML = "";
     for (const p of places) {
-      const row = document.createElement("div");
-      row.className = "pl" + (p === selected ? " sel" : "");
-      row.tabIndex = 0;
-      row.innerHTML = '<span class="nm"></span><span class="meta"></span>';
-      row.querySelector(".nm").textContent = p.name;
-      row.querySelector(".meta").textContent = p.meta || "";
-      row.addEventListener("click", () => {
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.className = "place";
+      tile.setAttribute("aria-pressed", p === selected ? "true" : "false");
+      tile.title = p.name;
+      const name = document.createElement("span");
+      name.className = "nm";
+      name.textContent = p.name;
+      const sub = document.createElement("span");
+      sub.className = "sub";
+      sub.textContent = [p.kind === "local" ? "local file" : "", placeYear(p.name), formatSize(p.size)]
+        .filter(Boolean).join(" \u00b7 ");
+      tile.append(name, sub);
+      tile.dataset.id = p.id;
+      tile.addEventListener("click", () => {
         selected = p;
         renderPlaces();
         setStatus("");
+        // Rebuilding the list drops focus; keep keyboard users on the tile.
+        const current = [...placeList.children].find((el) => el.dataset.id === p.id);
+        if (current) current.focus();
       });
-      row.addEventListener("dblclick", () => play());
-      row.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { selected = p; renderPlaces(); play(); }
-      });
-      placeList.appendChild(row);
+      tile.addEventListener("dblclick", () => play());
+      placeList.appendChild(tile);
     }
+    $("placeCount").textContent = places.length
+      ? places.length + (places.length === 1 ? " place" : " places") : "no places";
+    // The button names the target so a mis-click cannot start the wrong game.
+    playBtn.textContent = selected ? "Play " + selected.name : "Play";
+    playBtn.title = selected ? "Play " + selected.name : "";
     playBtn.disabled = !selected || !!$("webglWarn").offsetParent;
   }
 
@@ -95,7 +114,8 @@
       const bundled = (Array.isArray(list) ? list : []).map((p) => ({
         id: "place:" + p.file,
         name: p.name,
-        meta: "bundled · " + formatSize(p.bytes),
+        kind: "bundled",
+        size: p.bytes,
         src: "places/" + encodeURIComponent(p.file),
         bytes: null,
       }));
@@ -150,7 +170,8 @@
       const p = {
         id: "local:" + file.name,
         name: file.name.replace(/\.(rbxlx?|rbxm|xml)$/i, ""),
-        meta: "local file · " + (bytes.length / 1024).toFixed(0) + " KB",
+        kind: "local",
+        size: bytes.length,
         bytes,
         local: true,
       };
@@ -159,7 +180,7 @@
       places.unshift(p);
       selected = p;
       renderPlaces();
-      setStatus("Loaded " + file.name + " — press Play.");
+      setStatus("Loaded " + file.name + ". Press Play.");
     };
     reader.readAsArrayBuffer(file);
   }
@@ -342,6 +363,9 @@
     login.style.pointerEvents = "";
     login.style.display = "block";
     setStatus("The engine could not start.", true);
+    // A black screen usually means a renderer switch: show it without hunting.
+    const compat = $("compat");
+    if (compat) compat.open = true;
     fatalText.textContent = err && err.stack ? err.stack : String(err || "Unknown error");
     fatal.style.display = "flex";
   }
@@ -791,6 +815,14 @@
     };
   }
 
+  // A non-default renderer switch must not hide inside a closed section.
+  function markRenderOptions() {
+    const state = $("compatState");
+    if (!state) return;
+    const opts = renderOptions();
+    state.textContent = opts.lightgrid || opts.gles2 || opts.diag ? "(custom)" : "";
+  }
+
   function installRenderOptions() {
     const grid = $("lightGrid");
     const gles2 = $("gles2Shaders");
@@ -800,17 +832,21 @@
     grid.value = String(opts.lightgrid);
     gles2.checked = opts.gles2;
     diag.checked = opts.diag;
+    markRenderOptions();
     grid.addEventListener("change", () => {
       localStorage.setItem("rblx2016.lightgrid", grid.value);
       setStatus("Lighting option saved; it applies on the next Play.");
+      markRenderOptions();
     });
     gles2.addEventListener("change", () => {
       localStorage.setItem("rblx2016.gles2", gles2.checked ? "1" : "0");
       setStatus("Shader option saved; it applies on the next Play.");
+      markRenderOptions();
     });
     diag.addEventListener("change", () => {
       localStorage.setItem("rblx2016.diag", diag.checked ? "1" : "0");
       updateDiag();
+      markRenderOptions();
     });
   }
 
@@ -874,6 +910,8 @@
   // Hats, shoulder and back items are all wearable at once.
   const ACCESSORY_TYPES = ["hat", "hair", "shoulder", "back"];
   const BODY_SLOTS = ["Head", "Left arm", "Right arm", "Torso", "Left leg", "Right leg"];
+  const SLOT_SHORT = ["Head", "L arm", "R arm", "Torso", "L leg", "R leg"];
+  let bodyPart = 0;
   const BRICK_COLORS = [
     { n: 24, hex: "#f5cd30", name: "Bright yellow" },
     { n: 1, hex: "#f2f3f3", name: "White" },
@@ -909,8 +947,12 @@
   function loadAvatar() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(AVATAR_KEY) || "{}") || {}; } catch (_) {}
+    // Classic noob: yellow head and arms, bright blue torso, bright green legs.
+    const noob = [24, 24, 24, 23, 37, 37];
     const body = Array.isArray(saved.body) && saved.body.length === 6
-      ? saved.body.map((n) => Number(n) || 24) : [24, 24, 24, 24, 24, 24];
+      ? saved.body.map((n) => Number(n) || 24) : noob.slice();
+    // The old all-yellow default was never a deliberate choice; upgrade it.
+    if (body.join(",") === "24,24,24,24,24,24") body.splice(0, 6, ...noob);
     const accessories = Array.isArray(saved.accessories) ? saved.accessories
       : (Array.isArray(saved.hats) ? saved.hats : []);
     return {
@@ -980,8 +1022,7 @@
     }
     const names = worn.map((it) => it.name);
     const line = $("wornLine");
-    line.style.display = names.length ? "" : "none";
-    line.textContent = names.length ? "Wearing: " + names.join(", ") : "";
+    line.textContent = names.length ? "Wearing: " + names.join(", ") : "Not wearing anything yet.";
     $("catWornLine").textContent = names.length ? names.join(", ") : "nothing worn";
     const bar = $("catWornBar");
     bar.innerHTML = "";
@@ -1137,26 +1178,59 @@
     renderCatalog();
   }
 
+  // 2016 avatar editor: pick a body part, then pick from the BrickColor palette.
   function buildColourPickers() {
     const box = $("catColours");
+    const parts = document.createElement("div");
+    parts.className = "parts";
     BODY_SLOTS.forEach((slot, i) => {
-      const label = document.createElement("label");
-      label.textContent = slot;
-      const select = document.createElement("select");
-      for (const color of BRICK_COLORS) {
-        const option = document.createElement("option");
-        option.value = color.n;
-        option.textContent = color.name;
-        option.style.background = color.hex;
-        select.appendChild(option);
-      }
-      select.value = String(avatar.body[i] || 24);
-      select.addEventListener("change", () => {
-        avatar.body[i] = Number(select.value) || 24;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "partBtn";
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      const label = document.createElement("span");
+      label.className = "part";
+      label.textContent = SLOT_SHORT[i];
+      btn.append(chip, label);
+      btn.addEventListener("click", () => { bodyPart = i; renderColours(); });
+      parts.appendChild(btn);
+    });
+    const swatches = document.createElement("div");
+    swatches.className = "swatches";
+    for (const color of BRICK_COLORS) {
+      const swatch = document.createElement("button");
+      swatch.type = "button";
+      swatch.className = "swatch";
+      swatch.style.background = color.hex;
+      swatch.dataset.n = String(color.n);
+      swatch.title = color.name;
+      swatch.setAttribute("aria-label", color.name);
+      swatch.addEventListener("click", () => {
+        avatar.body[bodyPart] = color.n;
         saveAvatar();
+        renderColours();
       });
-      label.appendChild(select);
-      box.appendChild(label);
+      swatches.appendChild(swatch);
+    }
+    box.append(parts, swatches);
+    renderColours();
+  }
+
+  function renderColours() {
+    const box = $("catColours");
+    if (!box) return;
+    const byNumber = new Map(BRICK_COLORS.map((c) => [c.n, c]));
+    const partButtons = box.querySelectorAll(".partBtn");
+    partButtons.forEach((btn, i) => {
+      const color = byNumber.get(avatar.body[i]) || BRICK_COLORS[0];
+      btn.querySelector(".chip").style.background = color.hex;
+      btn.setAttribute("aria-pressed", i === bodyPart ? "true" : "false");
+      btn.title = BODY_SLOTS[i] + ": " + color.name;
+    });
+    const current = String(avatar.body[bodyPart]);
+    box.querySelectorAll(".swatch").forEach((swatch) => {
+      swatch.setAttribute("aria-pressed", swatch.dataset.n === current ? "true" : "false");
     });
   }
 

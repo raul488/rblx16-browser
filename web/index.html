@@ -6,105 +6,208 @@
 <title>Play Roblox 2016 in your browser</title>
 <meta name="description" content="The 2016 Roblox client ported to the browser with WebAssembly. Offline Play Solo, local RBXL files, no account.">
 <style>
-/* Menu chrome follows the classic index.html look: sky backdrop, paper card,
-   blue gradients, red wordmark.  In-game UI is the 2016 client's own. */
-html,body{ height:100%; margin:0; overflow:hidden; background:#7b9db7;
-           font-family:'Comic Sans MS','Comic Sans','Segoe UI',sans-serif; color:#111; }
+/* The menu is browser-owned; everything in-game is the 2016 client's own UI.
+   Chrome follows the 2016 site: #0074bd bar, sky, paper sheets, blue and red. */
+:root{ --ink:#1d3a57; --muted:#4d6478; --line:#c3cfdb; --navy:#0074bd; --blue:#0074bd; }
+html,body{ height:100%; margin:0; overflow:hidden; background:#18354f;
+           font-family:'Segoe UI',Tahoma,Verdana,sans-serif; color:var(--ink); }
 #view{ position:fixed; inset:0; background:#18354f; }
 #gameCanvas{ display:block; width:100%; height:100%; touch-action:none; }
 
 #login{ position:fixed; inset:0; overflow-y:auto; overflow-x:hidden; z-index:100;
-        background:url('img/sky.jpg') center/cover, #18354f; }
-#login .inner{ margin:28px auto 54px; max-width:620px; width:92%;
-               background:linear-gradient(#fdfdfd,#e8eef5); border:1px solid #8fa3b6;
-               padding:20px 28px 22px; box-shadow:0 8px 28px rgba(0,0,0,.6); }
-.siteBanner{ display:block; margin:0 auto 10px; width:min(330px,80%); height:auto;
-             -webkit-user-drag:none; }
-.subtitle{ text-align:center; color:#425d75; font-size:12px; margin:0 0 14px; line-height:1.5; }
-h2{ font-size:13px; color:#24405c; margin:15px 0 6px; letter-spacing:.3px; }
-h2 .btn{ margin-left:8px; padding:1px 8px; font-size:10.5px; vertical-align:middle; }
-.placeList{ border:1px solid #b3c1cf; background:#fff; max-height:220px; overflow:auto; }
-.pl{ padding:8px 12px; border-bottom:1px solid #e3e9ef; cursor:pointer; font-size:14px;
-     display:flex; justify-content:space-between; gap:12px; align-items:center; }
-.pl:last-child{ border-bottom:0; }
-.pl:hover{ background:#dcebfb; }
-.pl.sel{ background:linear-gradient(#dcebfb,#cfe2fa); box-shadow:inset 3px 0 0 #4f86bd; }
-.pl .meta{ color:#789; font-size:11px; text-align:right; white-space:nowrap; }
-.pl .nm{ min-width:0; }
-.row{ display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.cfgRow{ display:flex; align-items:center; gap:8px; margin-top:12px; }
-.cfgRow label{ font-size:12px; color:#425d75; white-space:nowrap; }
-.checkRow{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12px; color:#425d75; }
-.checkRow input{ margin:0; }
-#userName{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font-size:13px;
-           font-family:inherit; background:#fff; outline:none; }
-#userName:focus{ border-color:#5c9be0; }
-button{ font-family:inherit; }
-.btn{ font-size:11.5px; padding:4px 12px; border:1px solid #a4b2c0; color:#345; cursor:pointer;
-      background:linear-gradient(#fdfdfd,#dde6f0); }
-.btn:hover{ background:#dcebfb; }
-.btn:disabled{ opacity:.5; cursor:default; }
+        background:
+          radial-gradient(130% 75% at 50% 0%, rgba(17,36,54,0) 45%, rgba(11,24,37,.62) 100%),
+          url('img/sky.jpg') center/cover no-repeat,
+          #18354f; }
+
+/* ---- site bar ---- */
+.topbar{ position:sticky; top:0; z-index:30; display:flex; align-items:center; gap:11px;
+         min-height:46px; padding:0 clamp(10px,2.5vw,22px); background:var(--navy);
+         border-bottom:3px solid #005f9e; box-shadow:0 2px 12px rgba(6,14,24,.45); }
+.topbar .mark{ height:23px; width:auto; -webkit-user-drag:none; }
+.topbar .name{ font-size:13px; font-weight:600; color:#fff; letter-spacing:.7px; white-space:nowrap; }
+.topbar .name span{ font-weight:400; color:#f0f7fd; }
+.topbar .badge{ font-size:12px; letter-spacing:.8px; text-transform:uppercase; color:#fff;
+                border:1px solid rgba(228,68,60,.75); padding:2px 6px; border-radius:2px; }
+.topbar .unofficial{ margin-left:auto; font-size:12px; color:#f0f7fd; white-space:nowrap; }
+.topbar .btn{ margin-left:10px; }
+@media (max-width:820px){ .topbar .unofficial{ display:none; } .topbar .btn{ margin-left:auto; } }
+@media (max-width:540px){ .topbar .name span{ display:none; } }
+@media (max-width:380px){ .topbar .name{ display:none; } .topbar{ gap:8px; } }
+
+/* ---- layout ---- */
+.shell{ max-width:1080px; width:min(94%,1080px); margin:26px auto 34px; display:grid;
+        grid-template-columns:minmax(0,1.42fr) minmax(330px,.92fr); gap:18px; align-items:start; }
+.rail{ position:sticky; top:62px; display:flex; flex-direction:column; gap:14px; }
+.fineprint{ grid-column:1/-1; margin:0; text-align:center; font-size:12px; line-height:1.6;
+            color:#c6d7e7; text-shadow:0 1px 2px rgba(0,0,0,.45); }
+.fineprint b{ color:#fff; font-weight:600; }
+@media (max-width:980px){
+  .shell{ display:flex; flex-direction:column; gap:14px; margin:16px auto 26px; }
+  .rail{ display:contents; }        /* let the player card sit above the shelf */
+  .player{ order:1; } .shelf{ order:2; } .advanced{ order:3; } .fineprint{ order:4; }
+}
+
+.panel{ background:linear-gradient(#fdfdfd,#eef2f7); border:1px solid #8fa3b6;
+        box-shadow:0 6px 22px rgba(6,14,24,.38); padding:15px 17px 17px; border-radius:2px; }
+.panelHead{ display:flex; align-items:center; gap:10px; margin:0 0 11px; }
+.panelHead h2{ font-size:17px; margin:0; color:#173a5e; letter-spacing:.2px; }
+.panelHead .count{ font-size:12px; color:var(--muted); }
+.panelHead .btn{ margin-left:auto; }
+
+/* ---- place shelf ---- */
+.places{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.place{ appearance:none; font:inherit; color:inherit; text-align:left; position:relative;
+        display:flex; flex-direction:column; gap:3px; min-height:62px; padding:8px 11px 7px 12px;
+        background:#fff; border:1px solid #c3ccd6; border-radius:2px; cursor:pointer;
+        transition:border-color .12s, box-shadow .12s, transform .12s; }
+.place:hover{ border-color:#7ba3cd; box-shadow:0 2px 9px rgba(31,43,69,.18); transform:translateY(-1px); }
+.place:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+.place .nm{ font-size:13.5px; line-height:1.25; font-weight:600; color:var(--ink);
+            display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.place .sub{ font-size:12px; color:#54697c; margin-top:auto; white-space:nowrap;
+             overflow:hidden; text-overflow:ellipsis; }
+.place[aria-pressed="true"]{ background:linear-gradient(#eaf4ff,#d9e9fa); border-color:var(--blue);
+        box-shadow:inset 0 0 0 2px #a9cdf1, 0 2px 10px rgba(31,43,69,.2); }
+.place[aria-pressed="true"]::before{ content:""; position:absolute; left:0; top:0; bottom:0;
+        width:4px; background:var(--blue); }
+.place[aria-pressed="true"] .sub{ color:#3f6285; }
+.openTile{ width:100%; box-sizing:border-box; margin-top:8px; appearance:none; font:inherit;
+           display:flex; align-items:center; justify-content:center; gap:6px; min-height:50px;
+           padding:8px 12px; cursor:pointer; color:#34536f; font-size:12.5px; text-align:center;
+           background:#f4f8fc; border:2px dashed #9db2c6; border-radius:2px; }
+.openTile b{ color:var(--ink); }
+.openTile:hover{ border-color:#5c9be0; background:#eaf4ff; }
+.openTile:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+#login.drag .openTile{ border-color:#e4443c; background:#fdecea; color:#8d1f1f; }
 #openFile{ display:none; }
-#playBtn{ display:block; width:100%; margin-top:14px; padding:10px 14px; border:1px solid #274a68;
-          background:linear-gradient(#8fc3f2,#5c9be0); color:#fff; font-size:16px; font-weight:bold;
-          cursor:pointer; letter-spacing:.6px; }
-#playBtn:hover{ filter:brightness(1.06); }
-#playBtn:disabled{ filter:grayscale(.6); opacity:.6; cursor:default; }
-.status{ min-height:16px; margin-top:8px; font-size:11.5px; color:#425d75; line-height:1.45; }
-.status.err{ color:#8d1f1f; }
-.tip{ font-size:11px; color:#567; margin-top:12px; line-height:1.6; border-top:1px dashed #c3cfdb;
-      padding-top:10px; }
-.tip b{ color:#345; }
-.cookieRow{ display:flex; gap:6px; margin-top:8px; align-items:center; }
-#cookieInput{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font-size:12px;
-              font-family:inherit; background:#fff; outline:none; }
-#cookieInput:focus{ border-color:#5c9be0; }
+.trust{ margin:10px 0 0; font-size:12px; line-height:1.55; color:#54697c; }
+@media (max-width:640px){
+  .places{ grid-template-columns:1fr; }
+  .place{ min-height:56px; }
+  .place .nm{ font-size:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .place{ transition:none; } .place:hover{ transform:none; }
+}
+
+/* ---- player card ---- */
+.lbl{ display:block; margin:0 0 4px; font-size:12px; font-weight:600; letter-spacing:.7px;
+      text-transform:uppercase; color:var(--muted); }
+#userName{ width:100%; box-sizing:border-box; border:1px solid #a4b2c0; padding:6px 9px;
+           font:inherit; font-size:13px; background:#fff; outline:none; border-radius:2px; }
+#userName:focus{ border-color:#5c9be0; box-shadow:0 0 0 2px #cfe4fb; }
+.btn{ font:inherit; font-size:12px; padding:5px 12px; border:1px solid #a4b2c0; color:#345;
+      cursor:pointer; background:linear-gradient(#fdfdfd,#dde6f0); border-radius:2px; }
+.btn:hover{ background:#dcebfb; }
+.btn:focus-visible{ outline:2px solid var(--blue); outline-offset:1px; }
+.btn:disabled{ opacity:.5; cursor:default; }
+.wornline{ margin:9px 0 0; font-size:12px; color:var(--muted); line-height:1.45; }
+.hintline{ margin:5px 0 0; font-size:12px; color:#516b80; line-height:1.45; }
+#playBtn{ display:block; width:100%; margin-top:13px; padding:11px 14px; border:1px solid #1f5a1e;
+          background:linear-gradient(#35852f,#256428); color:#fff; font:inherit; font-size:16px;
+          font-weight:700; letter-spacing:.4px; line-height:1.25; cursor:pointer; border-radius:2px;
+          text-shadow:0 1px 0 rgba(0,0,0,.28); box-sizing:border-box; }
+#playBtn:hover{ filter:brightness(1.12); }
+#playBtn:focus-visible{ outline:3px solid #173a5e; outline-offset:2px; }
+#playBtn:disabled{ filter:grayscale(.65); opacity:.6; cursor:default; }
+.status{ min-height:16px; margin-top:7px; font-size:12px; color:#425d75; line-height:1.45; }
+.status.err{ color:#8d1f1f; font-weight:600; }
+.checkRow{ display:flex; align-items:center; gap:7px; margin-top:10px; font-size:12px;
+           color:#425d75; cursor:pointer; line-height:1.4; }
+.checkRow input{ margin:0; accent-color:var(--blue); flex:none; }
+
+.controls{ margin:13px 0 0; padding:10px 0 0; border-top:1px dashed var(--line);
+           display:grid; grid-template-columns:1fr 1fr; gap:3px 12px;
+           font-size:12px; color:#4d6478; line-height:1.45; }
+.controls div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.controls b{ color:#2c4a67; font-weight:600; }
+.controls .touch{ grid-column:1/-1; white-space:normal; color:#516b80; margin-top:3px; }
+
+/* ---- collapsible settings ---- */
+.advanced{ display:flex; flex-direction:column; gap:10px; }
+details.panel{ padding:0; }
+details.panel>summary{ cursor:pointer; list-style:none; display:flex; align-items:center; gap:8px;
+        padding:9px 14px; font-size:12px; font-weight:700; color:#2c4a67; letter-spacing:.2px; }
+details.panel>summary::-webkit-details-marker{ display:none; }
+details.panel>summary::before{ content:"\25B8"; font-size:10px; color:#7a8b9b; }
+details.panel[open]>summary::before{ content:"\25BE"; }
+details.panel>summary:focus-visible{ outline:2px solid var(--blue); outline-offset:-2px; }
+#compatState{ margin-left:auto; font-weight:400; font-size:12px; color:#8d1f1f; }
+details.panel .body{ padding:2px 14px 13px; border-top:1px solid #dde5ee; }
+.cfgRow{ display:flex; align-items:center; gap:8px; margin-top:11px; flex-wrap:wrap; }
+.cfgRow label{ font-size:12px; color:#425d75; white-space:nowrap; }
+#lightGrid{ border:1px solid #a4b2c0; padding:4px 6px; font:inherit; font-size:12px;
+            background:#fff; max-width:100%; }
+.noteText{ margin:9px 0 0; font-size:12px; color:#4d6478; line-height:1.55; }
+.noteText code{ background:#e2e7ee; padding:0 3px; font-size:12px; }
 #cookieState{ color:#345; letter-spacing:1px; }
-a{ color:#2f5d8e; }
-#dropHint{ color:#789; font-size:11px; }
-#login.drag{ outline:4px dashed #e4443c; outline-offset:-10px; }
-#lightGrid{ border:1px solid #a4b2c0; padding:3px 6px; font-size:12px; font-family:inherit; background:#fff; }
+.cookieRow{ display:flex; gap:6px; margin-top:8px; align-items:center; }
+#cookieInput{ flex:1; min-width:0; border:1px solid #a4b2c0; padding:5px 8px; font:inherit;
+              font-size:12px; background:#fff; outline:none; border-radius:2px; }
+#cookieInput:focus{ border-color:#5c9be0; box-shadow:0 0 0 2px #cfe4fb; }
+#cookieState{ font-size:12px; }
+
+#webglWarn{ display:none; margin:0 0 10px; padding:9px 11px; border:1px solid #c46a5a;
+            background:#fdecea; color:#7a2018; font-size:12px; line-height:1.55; border-radius:2px; }
+#webglWarn b{ display:block; font-size:13px; margin-bottom:2px; }
+#webglWarn code{ font-size:12px; background:#f6d7d2; padding:0 3px; }
+
 #diagBox{ display:none; position:fixed; left:8px; bottom:8px; z-index:140; max-width:46vw;
           background:rgba(10,16,24,.82); color:#cfe3ff; border:1px solid #33506f; padding:6px 8px;
           font:10.5px/1.45 monospace; white-space:pre-wrap; pointer-events:none; }
 #diagBox.on{ display:block; }
 
-#webglWarn{ display:none; margin:10px 0 2px; padding:9px 11px; border:1px solid #c46a5a;
-            background:#fdecea; color:#7a2018; font-size:12px; line-height:1.55; }
-#webglWarn b{ display:block; font-size:13px; margin-bottom:2px; }
-#webglWarn code{ font-size:11px; background:#f6d7d2; padding:0 3px; }
-
 #fatal{ display:none; position:fixed; inset:0; z-index:150; align-items:center; justify-content:center;
-        background:rgba(20,35,50,.7); }
+        background:rgba(12,24,36,.72); }
 #fatal .box{ max-width:560px; width:90%; background:#fff; border:1px solid #8fa3b6; padding:18px 22px;
-             box-shadow:0 6px 24px rgba(0,0,0,.55); }
+             box-shadow:0 8px 30px rgba(0,0,0,.55); border-radius:2px; }
 #fatal h3{ margin:0 0 8px; color:#8d1f1f; font-size:16px; }
 #fatal pre{ white-space:pre-wrap; font:11px/1.45 monospace; background:#f4f6f8; border:1px solid #d6dee7;
             padding:8px; max-height:35vh; overflow:auto; }
 
-/* Catalog: the 2016 site's dark navy bar, grey sidebar, white item tiles. */
+/* Catalog: the 2016 site's blue bar, grey sidebar, white item tiles. */
 #catalog{ display:none; position:fixed; inset:0; z-index:120; flex-direction:column;
           background:#eef0f4; color:#333; font-family:'Segoe UI',Tahoma,Verdana,sans-serif; }
 #catalog.open{ display:flex; }
-#catalog .top{ display:flex; align-items:center; gap:14px; padding:7px 16px; background:#1f2b45;
-               border-bottom:3px solid #2f4b74; }
+#catalog .top{ display:flex; align-items:center; gap:14px; padding:7px 16px; background:#0074bd;
+               border-bottom:3px solid #005f9e; }
 #catalog .top img{ height:20px; }
 #catalog .top h1{ margin:0; font-size:15px; font-weight:600; color:#fff; letter-spacing:.6px; }
-#catalog .top .wornline{ color:#a9bdd6; font-size:11px; margin-left:6px; }
+#catalog .top .wornline{ color:#f0f7fd; font-size:12px; margin:0 0 0 6px; }
 #catSearch{ margin-left:auto; width:220px; padding:5px 8px; font-size:12px; border:1px solid #0d1727;
             background:#fff; border-radius:2px; outline:none; font-family:inherit; }
+#catalog .catHint{ display:flex; gap:8px; align-items:flex-start; padding:7px 16px; background:#fdf3d8;
+                   border-bottom:1px solid #e2cf9a; color:#6b4e12; font-size:12px; line-height:1.5; }
+#catalog .catHint code{ background:#f3e3bb; padding:0 3px; font-size:12px; }
+#catalog .top .btn{ white-space:nowrap; }
 #catalog .body{ flex:1; display:flex; min-height:0; }
 #catalog .side{ width:186px; flex:none; background:#dfe4ea; border-right:1px solid #c3ccd6;
                 overflow:auto; padding-bottom:14px; }
-#catalog .side h3{ margin:12px 14px 3px; font-size:10.5px; text-transform:uppercase; color:#5b6b7c;
+#catalog .side h2{ margin:12px 14px 3px; font-size:12px; text-transform:uppercase; color:#4c5c6d;
                    letter-spacing:.7px; }
 #catalog .side a{ display:block; padding:5px 16px; font-size:12.5px; color:#24557f; cursor:pointer; }
 #catalog .side a:hover{ background:#cfd9e4; }
-#catalog .side a.sel{ background:#24557f; color:#fff; }
-#catalog .side select{ margin:2px 12px 0; width:162px; font-size:11.5px; padding:2px; font-family:inherit; }
-#catalog .colours{ display:grid; grid-template-columns:1fr 1fr; gap:4px 6px; margin:4px 12px 0; }
-#catalog .colours label{ font-size:10.5px; color:#4a5b6c; display:flex; flex-direction:column; }
-#catalog .colours select{ width:100%; font-size:11px; font-family:inherit; }
+#catalog .side a.sel{ background:#0074bd; color:#fff; }
+#catalog .side select{ margin:2px 12px 0; width:162px; font-size:12px; padding:2px; font-family:inherit; }
+#catalog .colours{ margin:4px 12px 0; }
+#catalog .parts{ display:grid; grid-template-columns:repeat(auto-fit,minmax(72px,1fr)); gap:4px; }
+#catalog .partBtn{ display:flex; align-items:center; gap:5px; min-width:0; padding:3px 5px;
+                   font:inherit; font-size:12px; color:#3c4c5c; text-align:left; background:#eef2f6;
+                   border:1px solid #c3ccd6; border-radius:2px; cursor:pointer; }
+#catalog .partBtn .chip{ width:13px; height:13px; flex:none; border:1px solid rgba(0,0,0,.35); }
+#catalog .partBtn .part{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#catalog .partBtn:hover{ border-color:#7ba3cd; }
+#catalog .partBtn[aria-pressed="true"]{ background:#fff; border-color:#0074bd;
+                                        box-shadow:inset 0 0 0 1px #0074bd; }
+#catalog .partBtn:focus-visible{ outline:2px solid #0074bd; outline-offset:1px; }
+#catalog .swatches{ display:grid; grid-template-columns:repeat(auto-fill,minmax(22px,1fr));
+                    gap:4px; margin-top:8px; }
+#catalog .swatch{ width:100%; aspect-ratio:1/1; padding:0; cursor:pointer;
+                  border:1px solid rgba(0,0,0,.35); border-radius:2px; }
+#catalog .swatch:hover{ outline:2px solid #7ba3cd; outline-offset:1px; }
+#catalog .swatch[aria-pressed="true"]{ outline:2px solid #0074bd; outline-offset:1px; }
+#catalog .swatch:focus-visible{ outline:2px solid #0074bd; outline-offset:1px; }
 #catalog .main{ flex:1; min-width:0; overflow:auto; padding:14px 18px 48px; }
 #catalog .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(148px,1fr)); gap:12px; }
 #catalog .tile{ background:#fff; border:1px solid #c3ccd6; padding:6px; text-align:center;
@@ -112,10 +215,10 @@ a{ color:#2f5d8e; }
 #catalog .tile:hover{ border-color:#7ba3cd; box-shadow:0 1px 7px rgba(0,0,0,.2); }
 #catalog .tile.worn{ border-color:#2a8a3e; box-shadow:inset 0 0 0 2px #b7e3c2; }
 #catalog .tile img{ width:100%; aspect-ratio:1/1; object-fit:contain; background:#f7f8fa; }
-#catalog .tile .nm{ font-size:12px; color:#24557f; margin-top:6px; line-height:1.25; min-height:30px;
+#catalog .tile .nm{ font-size:12px; color:#0074bd; margin-top:6px; line-height:1.25; min-height:30px;
                     overflow:hidden; }
-#catalog .tile .cr{ font-size:10.5px; color:#8794a1; margin-top:2px; }
-#catalog .tile .pr{ font-size:11.5px; color:#2a8a3e; font-weight:700; margin-top:4px; }
+#catalog .tile .cr{ font-size:12px; color:#5f7386; margin-top:2px; }
+#catalog .tile .pr{ font-size:12px; color:#237536; font-weight:700; margin-top:4px; }
 #catalog .note{ padding:26px 8px; font-size:13px; color:#5b6b7c; line-height:1.7; }
 #catalog .note code{ background:#e2e7ee; padding:1px 4px; font-size:12px; }
 #catDetail{ display:none; position:fixed; inset:0; z-index:130; background:rgba(20,32,48,.7);
@@ -125,25 +228,31 @@ a{ color:#2f5d8e; }
                    overflow:auto; display:flex; gap:16px; padding:16px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); }
 #catDetail img{ width:210px; height:210px; object-fit:contain; background:#f7f8fa; border:1px solid #dde3ea; }
 #catDetail .info{ flex:1; min-width:0; }
-#catDetail h2{ margin:0 0 4px; font-size:17px; color:#24557f; }
-#catDetail .meta{ font-size:11.5px; color:#78899a; margin-bottom:10px; }
-#catDetail .price{ font-size:15px; color:#2a8a3e; font-weight:700; margin:6px 0 14px; }
+#catDetail h2{ margin:0 0 4px; font-size:17px; color:#0074bd; }
+#catDetail .meta{ font-size:12px; color:#78899a; margin-bottom:10px; }
+#catDetail .price{ font-size:15px; color:#237536; font-weight:700; margin:6px 0 14px; }
 #catDetail .btns{ display:flex; gap:8px; flex-wrap:wrap; }
 #catDetail .btn{ font-size:12px; padding:6px 14px; }
-#catDetail .wearing{ background:#24557f; color:#fff; border:1px solid #17405f; }
+#catDetail .wearing{ background:#0074bd; color:#fff; border:1px solid #17405f; }
 #catalog .wornbar{ background:#f6f8fa; border:1px solid #d7dee6; padding:7px 10px; margin-bottom:12px;
-                   font-size:11.5px; color:#4a5b6c; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-#catalog .wornbar b{ color:#24557f; }
-#catalog .wornbar button{ font-size:10.5px; padding:1px 6px; }
+                   font-size:12px; color:#4a5b6c; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+#catalog .wornbar b{ color:#0074bd; }
+#catalog .wornbar button{ font-size:12px; padding:1px 6px; }
+@media (max-width:540px){
+  #catalog .top img{ display:none; }
+  #catalog .top h1{ font-size:14px; }
+  #catSearch{ width:42vw; }
+}
 @media (max-width:720px){
   #catalog .top{ gap:8px; padding:6px 10px; }
   #catalog .top .wornline{ display:none; }
+  #catalog .catHint{ font-size:12px; padding:6px 10px; }
   #catSearch{ width:120px; }
   #catalog .side{ width:132px; }
   #catalog .side select{ width:110px; }
-  #catalog .colours{ display:block; margin:4px 10px 0; }
+  #catalog .colours{ margin:4px 10px 0; }
   #catalog .grid{ grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
-  #catalog .tile .nm{ font-size:11px; min-height:0; }
+  #catalog .tile .nm{ font-size:12px; min-height:0; }
   #catDetail .sheet{ flex-direction:column; align-items:center; }
   #catDetail img{ width:150px; height:150px; }
 }
@@ -153,74 +262,107 @@ a{ color:#2f5d8e; }
 <div id="view"><canvas id="gameCanvas"></canvas></div>
 
 <div id="login">
-  <div class="inner">
-    <img class="siteBanner" src="img/roblox-logo.png" alt="ROBLOX">
-    <div class="subtitle">The 2016 Roblox engine, compiled to WebAssembly.<br>
-      Drop in a place from that era and play. No account, no install.</div>
+  <header class="topbar">
+    <img class="mark" src="img/roblox-logo.png" alt="ROBLOX">
+    <div class="name">2016 <span>&middot; offline archive</span></div>
+    <span class="badge">Unofficial</span>
+    <span class="unofficial">Not affiliated with Roblox Corporation</span>
+    <button type="button" class="btn" id="catalogBtn">Catalog</button>
+  </header>
 
-    <div id="webglWarn" role="alert">
-      <b>WebGL 2 is disabled or unavailable</b>
-      This browser could not create a WebGL 2 context, so the 3D client cannot render.
-      Enable hardware acceleration / WebGL in the browser settings, then reload this page.
-    </div>
-
-    <h2>Places <button type="button" class="btn" id="refreshPlaces" title="Re-read web/places/">Refresh</button></h2>
-    <div class="placeList" id="placeList"></div>
-
-    <div class="row">
-      <button type="button" class="btn" id="openFileBtn">Open .rbxl / .rbxlx</button>
-      <span id="dropHint">or drag a place file onto this page</span>
-      <input type="file" id="openFile" accept=".rbxl,.rbxlx,.rbxm,.xml">
-    </div>
-
-    <div class="cfgRow">
-      <label for="userName">Username:</label>
-      <input id="userName" maxlength="20" spellcheck="false" placeholder="Player1">
-      <button type="button" class="btn" id="catalogBtn">Catalog</button>
-    </div>
-    <div class="checkRow" id="wornLine" style="display:none"></div>
-    <label class="checkRow" for="unlockFps">
-      <input type="checkbox" id="unlockFps">
-      Unlock FPS (disable the engine's 30 FPS cap)
-    </label>
-    <div class="cfgRow">
-      <label for="lightGrid">Lighting:</label>
-      <select id="lightGrid" title="Renderer compatibility; applies on the next Play">
-        <option value="0">Automatic</option>
-        <option value="1">2D light grid</option>
-        <option value="2">No light grid (diagnostic)</option>
-      </select>
-    </div>
-    <label class="checkRow" for="gles2Shaders">
-      <input type="checkbox" id="gles2Shaders">
-      Use the GLES2 shader pack (renderer compatibility)
-    </label>
-    <label class="checkRow" for="showDiag">
-      <input type="checkbox" id="showDiag">
-      Show renderer diagnostics over the game
-    </label>
-    <div class="status" id="status"></div>
-    <button type="button" id="playBtn">Play</button>
-
-    <div class="tip">
-      <b>Controls:</b> WASD + Space to move · right-drag to turn the camera ·
-      scroll to zoom · 1–9 for tools · F11 fullscreen · F12 record video ·
-      Print Screen screenshot. Touch devices use the stock thumbstick, jump
-      button and touch camera.<br>
-      Places run their own embedded scripts locally. Only open files you trust.
-    </div>
-
-    <div class="tip">
-      <b>Asset delivery cookie:</b> <span id="cookieState">checking…</span><br>
-      <span id="cookieNote">Used by the local server to download <code>rbxassetid://</code>
-      content from assetdelivery. Stored next to <code>web/</code>, never in this page.</span>
-      <div class="cookieRow">
-        <input id="cookieInput" type="password" autocomplete="off" spellcheck="false"
-               placeholder=".ROBLOSECURITY value">
-        <button type="button" class="btn" id="cookieSave">Save</button>
-        <button type="button" class="btn" id="cookieClear">Remove</button>
+  <div class="shell">
+    <section class="panel shelf" aria-labelledby="placesHead">
+      <div class="panelHead">
+        <h2 id="placesHead">Pick a place</h2>
+        <span class="count" id="placeCount"></span>
+        <button type="button" class="btn" id="refreshPlaces" title="Re-read web/places/">Refresh</button>
       </div>
-    </div>
+
+      <div id="webglWarn" role="alert">
+        <b>WebGL 2 is disabled or unavailable</b>
+        This browser could not create a WebGL 2 context, so the 3D client cannot render.
+        Enable hardware acceleration / WebGL in the browser settings, then reload this page.
+      </div>
+
+      <div class="places" id="placeList"></div>
+
+      <button type="button" class="openTile" id="openFileBtn">
+        <span>Drop a <b>.rbxl</b> / <b>.rbxlx</b> here, or <b>browse</b></span>
+      </button>
+      <input type="file" id="openFile" accept=".rbxl,.rbxlx,.rbxm,.xml">
+      <p class="trust">Places run their own embedded scripts locally. Only open files you trust.</p>
+    </section>
+
+    <aside class="rail">
+      <section class="panel player">
+        <label class="lbl" for="userName">Play as</label>
+        <input id="userName" maxlength="20" spellcheck="false" placeholder="Player1" autocomplete="off">
+        <p class="wornline" id="wornLine">Not wearing anything yet.</p>
+        <p class="hintline">Catalog items need the local server and a Roblox cookie.</p>
+
+        <button type="button" id="playBtn">Play</button>
+        <div class="status" id="status" role="status" aria-live="polite"></div>
+
+        <label class="checkRow" for="unlockFps">
+          <input type="checkbox" id="unlockFps">
+          Unlock FPS (disable the engine's 30 FPS cap)
+        </label>
+
+        <div class="controls" aria-label="Controls">
+          <div><b>WASD</b> move</div>
+          <div><b>Space</b> jump</div>
+          <div><b>Right-drag</b> camera</div>
+          <div><b>Wheel</b> zoom</div>
+          <div><b>1&ndash;9</b> tools</div>
+          <div><b>F11</b> fullscreen</div>
+          <div><b>F12</b> record</div>
+          <div><b>PrtSc</b> screenshot</div>
+          <div class="touch">Touch screens get the stock 2016 thumbstick, jump button and touch camera.</div>
+        </div>
+      </section>
+
+      <div class="advanced">
+        <details class="panel" id="compat">
+          <summary>Compatibility <span id="compatState"></span></summary>
+          <div class="body">
+            <div class="cfgRow">
+              <label for="lightGrid">Lighting</label>
+              <select id="lightGrid" title="Renderer compatibility; applies on the next Play">
+                <option value="0">Automatic</option>
+                <option value="1">2D light grid</option>
+                <option value="2">No light grid (diagnostic)</option>
+              </select>
+            </div>
+            <label class="checkRow" for="gles2Shaders">
+              <input type="checkbox" id="gles2Shaders">
+              Use the GLES2 shader pack (renderer compatibility)
+            </label>
+            <label class="checkRow" for="showDiag">
+              <input type="checkbox" id="showDiag">
+              Show renderer diagnostics over the game
+            </label>
+          </div>
+        </details>
+
+        <details class="panel" id="assets">
+          <summary>Asset downloads (optional)</summary>
+          <div class="body">
+            <p class="noteText" id="cookieNote">Used by the local server to download <code>rbxassetid://</code>
+              content from assetdelivery. Stored next to <code>web/</code>, never in this page.</p>
+            <p class="noteText">Status: <span id="cookieState">checking&hellip;</span></p>
+            <div class="cookieRow">
+              <input id="cookieInput" type="password" autocomplete="off" spellcheck="false"
+                     placeholder=".ROBLOSECURITY value">
+              <button type="button" class="btn" id="cookieSave">Save</button>
+              <button type="button" class="btn" id="cookieClear">Remove</button>
+            </div>
+          </div>
+        </details>
+      </div>
+    </aside>
+
+    <p class="fineprint"><b>Unofficial fan port</b> of the 2016 Roblox client &middot; not affiliated with
+      Roblox Corporation &middot; the engine, places and GUI run locally, no account needed.</p>
   </div>
 </div>
 
@@ -232,13 +374,19 @@ a{ color:#2f5d8e; }
     <input id="catSearch" type="search" placeholder="Search the catalog" spellcheck="false">
     <button type="button" class="btn" id="catClose">Back to menu</button>
   </div>
+  <div class="catHint">
+    <span><b>Needs the local server and a Roblox cookie.</b> Worn items download their meshes and
+      textures from Roblox, so the catalog only works when the site is served by
+      <code>python3 web/serve.py</code>. A static host cannot load them. Save a
+      <code>.ROBLOSECURITY</code> value under <b>Asset downloads</b> on the menu first.</span>
+  </div>
   <div class="body">
     <div class="side">
-      <h3>Categories</h3>
+      <h2>Categories</h2>
       <div id="catCats"></div>
-      <h3>Creator</h3>
+      <h2>Creator</h2>
       <select id="catCreator"><option value="">All creators</option></select>
-      <h3>Body colours</h3>
+      <h2>Body colours</h2>
       <div class="colours" id="catColours"></div>
     </div>
     <div class="main">
@@ -251,7 +399,7 @@ a{ color:#2f5d8e; }
 
 <div id="catDetail">
   <div class="sheet">
-    <img id="catDetailImg" alt="">
+    <img id="catDetailImg" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
     <div class="info">
       <h2 id="catDetailName"></h2>
       <div class="meta" id="catDetailMeta"></div>

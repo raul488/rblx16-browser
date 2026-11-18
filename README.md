@@ -51,9 +51,10 @@ needs a physical keyboard.
 - An avatar catalog with 2016-era shirts, t-shirts, pants, hats, hair,
   shoulder and back accessories, classic faces and the classic body packages
   ("Man", "Woman", ROBLOX Girl, ...), plus body colours. Worn
-  items persist in the browser and are applied to your character. It works on
-  static hosting too: meshes and textures are packed with the site and only
-  the items you actually wear are downloaded, then cached by the browser.
+  items persist in the browser and are applied to your character. Item meshes
+  and textures still come from Roblox, so the catalog needs the local server
+  (`python3 web/serve.py`) and a `.ROBLOSECURITY` cookie saved under
+  **Asset downloads**; a static host can list the items but cannot load them.
 - Settings page: graphics mode/quality, fullscreen, camera/movement mode,
   mouse sensitivity, volume, screenshots and recording.
 - Optional "Unlock FPS" switch on the menu; the stock client caps at 30 FPS.
