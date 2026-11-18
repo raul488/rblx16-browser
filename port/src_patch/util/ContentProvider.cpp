@@ -691,6 +691,20 @@ namespace RBX {
 			localProxy = id.toString().rfind(baseUrl, 0) == 0;
 		}
 
+		// A static host has no /asset endpoint; route those downloads through
+		// the configured asset proxy instead (it holds the Roblox session).
+		extern const char* rblx2016_asset_proxy;
+		if (rblx2016_asset_proxy && *rblx2016_asset_proxy) {
+			const std::string s = id.toString();
+			size_t assetPath = s.find("/asset/");
+			if (assetPath == std::string::npos)
+				assetPath = s.find("/asset?");
+			if (assetPath != std::string::npos) {
+				id = ContentId(std::string(rblx2016_asset_proxy) + s.substr(assetPath));
+				localProxy = true;
+			}
+		}
+
 		// Local rbxasset:// files don't go through URL reconstruction; resolve
 		// them straight to the asset folder so all local content works.
 		if (id.isAsset())

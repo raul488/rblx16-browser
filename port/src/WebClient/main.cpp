@@ -65,6 +65,9 @@
 extern "C" {
     int rblx2016_light_grid_mode = 0;  // 0 auto, 1 2D, 2 none
     int rblx2016_gles2_shaders = 0;    // 1 = glsles shader pack
+    // Optional asset proxy (a Cloudflare Worker that holds the Roblox
+    // session). Empty means assets go through <site>/asset.
+    const char* rblx2016_asset_proxy = "";
 }
 
 namespace {
@@ -563,6 +566,14 @@ void startAvatarApplication(const boost::shared_ptr<RBX::DataModel>& dm,
 }
 
 }  // namespace
+
+EMSCRIPTEN_KEEPALIVE void rblx_set_asset_proxy(const char* base) {
+    static std::string proxy;
+    proxy = base ? base : "";
+    while (!proxy.empty() && proxy.back() == '/') proxy.pop_back();
+    rblx2016_asset_proxy = proxy.c_str();
+    std::fprintf(stderr, "RBLX2016: asset proxy '%s'\n", rblx2016_asset_proxy);
+}
 
 EMSCRIPTEN_KEEPALIVE void rblx_set_render_option(const char* name, int value) {
     if (!name) return;
