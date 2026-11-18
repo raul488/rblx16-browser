@@ -144,6 +144,8 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
         // Weld accessories to the character attachment they name, not to the
         // head.
         FLog::SetValue("AccessoriesAndAttachments", "true");
+        // Mesh offsets (package body parts) must be applied in part space.
+        FLog::SetValue("FixMeshOffset", "true");
         // Auto throttle reacts to scheduler jitter and halves the simulation
         // rate; this is local Play Solo, so keep full-rate physics.
         RBX::EThrottle::globalDebugEThrottle = RBX::EThrottle::ThrottleDisabled;
