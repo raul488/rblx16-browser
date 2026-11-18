@@ -41,6 +41,18 @@ Phones and tablets get the original 2016 touch controls: thumbstick, jump
 button, touch camera and touch tool buttons. Text entry (chat, TextBox) still
 needs a physical keyboard.
 
+## Hosting
+
+`web/` is also published as a static site from the `gh-pages` branch. Static
+hosts cannot send the COOP/COEP headers the threaded engine needs, so
+`coi-serviceworker.js` provides cross-origin isolation, and the page cannot
+read the asset cookie itself. To load Roblox-hosted avatars and textures there,
+deploy [`port/worker/asset-proxy.js`](port/worker/asset-proxy.js) as a
+Cloudflare Worker with a `ROBLOSECURITY_COOKIE` secret and point
+`web/asset-proxy.json` at it (`{"base": "https://<worker>"}`). Without the
+proxy the site still lists places and plays them, just with missing remote
+assets.
+
 ## Features
 
 - The 2016 engine and Lua core GUI themselves: topbar, settings, chat,
@@ -48,13 +60,14 @@ needs a physical keyboard.
 - Real physics, joints, R6 animations, tools and HopperBins.
 - Places from `web/places/` are listed automatically; drop in a file and press
   **Refresh**.
-- An avatar catalog with 2016-era shirts, t-shirts, pants, hats, hair,
-  shoulder and back accessories, classic faces and the classic body packages
-  ("Man", "Woman", ROBLOX Girl, ...), plus body colours. Worn
-  items persist in the browser and are applied to your character. Item meshes
-  and textures still come from Roblox, so the catalog needs the local server
-  (`python3 web/serve.py`) and a `.ROBLOSECURITY` cookie saved under
-  **Asset downloads**; a static host can list the items but cannot load them.
+- An avatar catalog with 2008–2016 classic clothing (shirts, t-shirts, pants)
+  from Roblox, armitroner and the era's designers — VendettaTheGreat, Plad,
+  Keletho, GPR3, 1UK, Shaddic, ibloxu20 — plus hats, hair, shoulder and back
+  accessories, classic faces and body colours. Worn items persist in the
+  browser and are applied to your character. Item meshes and textures come
+  from Roblox: the local server with a saved `.ROBLOSECURITY` cookie is the
+  default source, and a static host can use the Worker proxy instead (see
+  [Hosting](#hosting)).
 - Settings page: graphics mode/quality, fullscreen, camera/movement mode,
   mouse sensitivity, volume, screenshots and recording.
 - Optional "Unlock FPS" switch on the menu; the stock client caps at 30 FPS.
@@ -65,9 +78,10 @@ needs a physical keyboard.
 ## Known limitations
 
 - No networking: Players and Player are local, no multiplayer, no server.
-- Remote Roblox assets need the local `/asset` proxy and, for user-uploaded
-  items, a `.ROBLOSECURITY` cookie saved on the menu. On a static host that
-  proxy does not exist.
+- Remote Roblox assets need a working asset source: the local `/asset` proxy
+  with a `.ROBLOSECURITY` cookie, or the Worker proxy on a static host. Without
+  one, catalogs still list and places still load, but Roblox-hosted meshes and
+  textures are missing.
 - Some places ship scripts that were written for newer Roblox or depend on
   Studio-only modules; those games load but their own logic can fail. The tab
   stays responsive.
