@@ -98,7 +98,7 @@ if (ENVIRONMENT_IS_PTHREAD) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpobcncifo.js
+// include: /tmp/tmp_0bjtyw1.js
 if (!Module["expectedDataFileDownloads"]) Module["expectedDataFileDownloads"] = 0;
 
 Module["expectedDataFileDownloads"]++;
@@ -3562,23 +3562,23 @@ Module["expectedDataFileDownloads"]++;
   });
 }))();
 
-// end include: /tmp/tmpobcncifo.js
-// include: /tmp/tmpwgo618de.js
+// end include: /tmp/tmp_0bjtyw1.js
+// include: /tmp/tmptkp93eh5.js
 // All the pre-js content up to here must remain later on, we need to run
 // it.
 if ((typeof ENVIRONMENT_IS_WASM_WORKER !== "undefined" && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD !== "undefined" && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET !== "undefined" && ENVIRONMENT_IS_AUDIO_WORKLET)) Module["preRun"] = [];
 
 var necessaryPreJSTasks = Module["preRun"].slice();
 
-// end include: /tmp/tmpwgo618de.js
-// include: /tmp/tmp6llrooii.js
+// end include: /tmp/tmptkp93eh5.js
+// include: /tmp/tmpft5o_5ua.js
 if (!Module["preRun"]) throw "Module.preRun should exist because file support used it; did a pre-js delete it?";
 
 necessaryPreJSTasks.forEach(task => {
   if (!Module["preRun"].includes(task)) throw "All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?";
 });
 
-// end include: /tmp/tmp6llrooii.js
+// end include: /tmp/tmpft5o_5ua.js
 var programArgs = [];
 
 var thisProgram = "./this.program";
@@ -13614,6 +13614,8 @@ var _rblx_load_place = Module["_rblx_load_place"] = makeInvalidEarlyAccess("_rbl
 
 var _rblx_loading_gui_ready = Module["_rblx_loading_gui_ready"] = makeInvalidEarlyAccess("_rblx_loading_gui_ready");
 
+var _rblx_set_asset_proxy = Module["_rblx_set_asset_proxy"] = makeInvalidEarlyAccess("_rblx_set_asset_proxy");
+
 var _rblx_set_render_option = Module["_rblx_set_render_option"] = makeInvalidEarlyAccess("_rblx_set_render_option");
 
 var _rblx_set_avatar = Module["_rblx_set_avatar"] = makeInvalidEarlyAccess("_rblx_set_avatar");
@@ -13730,6 +13732,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports["rblx_start_place"] !== "undefined", "missing Wasm export: rblx_start_place");
   assert(typeof wasmExports["rblx_load_place"] !== "undefined", "missing Wasm export: rblx_load_place");
   assert(typeof wasmExports["rblx_loading_gui_ready"] !== "undefined", "missing Wasm export: rblx_loading_gui_ready");
+  assert(typeof wasmExports["rblx_set_asset_proxy"] !== "undefined", "missing Wasm export: rblx_set_asset_proxy");
   assert(typeof wasmExports["rblx_set_render_option"] !== "undefined", "missing Wasm export: rblx_set_render_option");
   assert(typeof wasmExports["rblx_set_avatar"] !== "undefined", "missing Wasm export: rblx_set_avatar");
   assert(typeof wasmExports["rblx_frame"] !== "undefined", "missing Wasm export: rblx_frame");
@@ -13793,6 +13796,7 @@ function assignWasmExports(wasmExports) {
   _rblx_start_place = Module["_rblx_start_place"] = createExportWrapper("rblx_start_place", wasmExports["rblx_start_place"], 5);
   _rblx_load_place = Module["_rblx_load_place"] = createExportWrapper("rblx_load_place", wasmExports["rblx_load_place"], 0);
   _rblx_loading_gui_ready = Module["_rblx_loading_gui_ready"] = createExportWrapper("rblx_loading_gui_ready", wasmExports["rblx_loading_gui_ready"], 0);
+  _rblx_set_asset_proxy = Module["_rblx_set_asset_proxy"] = createExportWrapper("rblx_set_asset_proxy", wasmExports["rblx_set_asset_proxy"], 1);
   _rblx_set_render_option = Module["_rblx_set_render_option"] = createExportWrapper("rblx_set_render_option", wasmExports["rblx_set_render_option"], 2);
   _rblx_set_avatar = Module["_rblx_set_avatar"] = createExportWrapper("rblx_set_avatar", wasmExports["rblx_set_avatar"], 1);
   _rblx_frame = Module["_rblx_frame"] = createExportWrapper("rblx_frame", wasmExports["rblx_frame"], 0);

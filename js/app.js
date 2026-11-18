@@ -405,6 +405,16 @@
         mod.ccall("rblx_set_unlock_fps", null, ["number"], [unlockFps.checked ? 1 : 0]);
       } catch (_) {}
       applyRenderOptions(mod);
+      // Hosted builds have no /asset endpoint; a small Worker does it instead.
+      if (!window.__rblxLocalServer) {
+        try {
+          const response = await fetch("asset-proxy.json", { cache: "no-store" });
+          if (response.ok) {
+            const proxy = (await response.json()).base;
+            if (proxy) mod.ccall("rblx_set_asset_proxy", null, ["string"], [proxy]);
+          }
+        } catch (_) {}
+      }
       // Hand the worn catalog items to the engine; it applies them when the
       // local character spawns.
       try {
@@ -765,6 +775,7 @@
     if (!input || !save || !clear) return;
     fetch("cookie", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("no server"))))
+      .then((status) => { window.__rblxLocalServer = true; return status; })
       .then(showCookieStatus)
       .catch(() => {
         // No local server: the field stays visible for reference, but there is
