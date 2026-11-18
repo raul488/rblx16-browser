@@ -42,7 +42,7 @@ def catalog_ids():
     for item in items:
         if item.get("type") == "package":
             for part in item.get("parts", []):
-                for key in ("mesh", "texture"):
+                for key in ("mesh", "texture", "overlay"):
                     if part.get(key):
                         ids.add(str(part[key]))
             for extra in item.get("extras", []):

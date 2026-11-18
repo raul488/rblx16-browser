@@ -46,7 +46,6 @@
 #include "v8datamodel/PlayerScripts.h"
 #include "v8datamodel/CharacterAppearance.h"
 #include "v8datamodel/Decal.h"
-#include "v8datamodel/CharacterMesh.h"
 #include "v8datamodel/FileMesh.h"
 #include "v8datamodel/Attachment.h"
 #include "v8datamodel/Camera.h"
@@ -145,7 +144,6 @@ EMSCRIPTEN_KEEPALIVE int rblx_start_place(const unsigned char* data, int size, c
         // head.
         FLog::SetValue("AccessoriesAndAttachments", "true");
         // Mesh offsets (package body parts) must be applied in part space.
-        FLog::SetValue("FixMeshOffset", "true");
         // Auto throttle reacts to scheduler jitter and halves the simulation
         // rate; this is local Play Solo, so keep full-rate physics.
         RBX::EThrottle::globalDebugEThrottle = RBX::EThrottle::ThrottleDisabled;
@@ -491,27 +489,6 @@ void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::str
                 RBX::ShirtGraphic::prop_Graphic.setValue(item.get(),
                     RBX::TextureId(avatarUrl(base, e.id)));
                 worn.push_back(item);
-            } else if (e.type == "pkg") {
-                // Body package piece: "<bodyPart>:<meshAssetId>:<baseTextureId>"
-                int bodyPart = 0, mesh = 0, texture = 0;
-                if (std::sscanf(e.value.c_str(), "%d:%d:%d", &bodyPart, &mesh, &texture) == 3 && mesh) {
-                    boost::shared_ptr<RBX::CharacterMesh> item =
-                        RBX::Creatable<RBX::Instance>::create<RBX::CharacterMesh>();
-                    item->setBodyPart(static_cast<RBX::CharacterMesh::BodyPart>(bodyPart));
-                    RBX::CharacterMesh::prop_meshAssetId.setValue(item.get(), mesh);
-                    if (texture)
-                        RBX::CharacterMesh::prop_baseTextureAssetId.setValue(item.get(), texture);
-                    worn.push_back(item);
-                }
-            } else if (e.type == "pkghead") {
-                // Package head mesh: "<meshAssetId>"
-                long long mesh = std::atoll(e.value.c_str());
-                if (mesh > 0) {
-                    boost::shared_ptr<RBX::FileMesh> item =
-                        RBX::Creatable<RBX::Instance>::create<RBX::FileMesh>();
-                    item->setMeshId(RBX::MeshId("rbxassetid://" + std::to_string(mesh)));
-                    worn.push_back(item);
-                }
             } else if (e.type == "face") {
                 boost::shared_ptr<RBX::Decal> item = RBX::Creatable<RBX::Instance>::create<RBX::Decal>();
                 item->setName("face");
