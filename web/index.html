@@ -63,6 +63,11 @@ button{ font-family:inherit; }
 a{ color:#2f5d8e; }
 #dropHint{ color:#789; font-size:11px; }
 #login.drag{ outline:4px dashed #e4443c; outline-offset:-10px; }
+#lightGrid{ border:1px solid #a4b2c0; padding:3px 6px; font-size:12px; font-family:inherit; background:#fff; }
+#diagBox{ display:none; position:fixed; left:8px; bottom:8px; z-index:140; max-width:46vw;
+          background:rgba(10,16,24,.82); color:#cfe3ff; border:1px solid #33506f; padding:6px 8px;
+          font:10.5px/1.45 monospace; white-space:pre-wrap; pointer-events:none; }
+#diagBox.on{ display:block; }
 
 #webglWarn{ display:none; margin:10px 0 2px; padding:9px 11px; border:1px solid #c46a5a;
             background:#fdecea; color:#7a2018; font-size:12px; line-height:1.55; }
@@ -178,6 +183,22 @@ a{ color:#2f5d8e; }
       <input type="checkbox" id="unlockFps">
       Unlock FPS (disable the engine's 30 FPS cap)
     </label>
+    <div class="cfgRow">
+      <label for="lightGrid">Lighting:</label>
+      <select id="lightGrid" title="Renderer compatibility; applies on the next Play">
+        <option value="0">Automatic</option>
+        <option value="1">2D light grid</option>
+        <option value="2">No light grid (diagnostic)</option>
+      </select>
+    </div>
+    <label class="checkRow" for="gles2Shaders">
+      <input type="checkbox" id="gles2Shaders">
+      Use the GLES2 shader pack (renderer compatibility)
+    </label>
+    <label class="checkRow" for="showDiag">
+      <input type="checkbox" id="showDiag">
+      Show renderer diagnostics over the game
+    </label>
     <div class="status" id="status"></div>
     <button type="button" id="playBtn">Play</button>
 
@@ -242,6 +263,8 @@ a{ color:#2f5d8e; }
     </div>
   </div>
 </div>
+
+<div id="diagBox"></div>
 
 <div id="fatal" role="alertdialog" aria-modal="true">
   <div class="box">

@@ -380,6 +380,7 @@
       try {
         mod.ccall("rblx_set_unlock_fps", null, ["number"], [unlockFps.checked ? 1 : 0]);
       } catch (_) {}
+      applyRenderOptions(mod);
       // Hand the worn catalog items to the engine; it applies them when the
       // local character spawns.
       try {
@@ -770,6 +771,83 @@
     });
   }
 
+  // ------------------------------------------------------- render options
+  // Renderer workarounds for devices where the world renders black. They are
+  // read by the engine before it creates the view, so they apply on the next
+  // Play (or after a reload).
+  function renderOptions() {
+    return {
+      lightgrid: Number(localStorage.getItem("rblx2016.lightgrid") || "0") || 0,
+      gles2: localStorage.getItem("rblx2016.gles2") === "1",
+      diag: localStorage.getItem("rblx2016.diag") === "1",
+    };
+  }
+
+  function installRenderOptions() {
+    const grid = $("lightGrid");
+    const gles2 = $("gles2Shaders");
+    const diag = $("showDiag");
+    if (!grid || !gles2 || !diag) return;
+    const opts = renderOptions();
+    grid.value = String(opts.lightgrid);
+    gles2.checked = opts.gles2;
+    diag.checked = opts.diag;
+    grid.addEventListener("change", () => {
+      localStorage.setItem("rblx2016.lightgrid", grid.value);
+      setStatus("Lighting option saved; it applies on the next Play.");
+    });
+    gles2.addEventListener("change", () => {
+      localStorage.setItem("rblx2016.gles2", gles2.checked ? "1" : "0");
+      setStatus("Shader option saved; it applies on the next Play.");
+    });
+    diag.addEventListener("change", () => {
+      localStorage.setItem("rblx2016.diag", diag.checked ? "1" : "0");
+      updateDiag();
+    });
+  }
+
+  function applyRenderOptions(mod) {
+    const opts = renderOptions();
+    try {
+      mod.ccall("rblx_set_render_option", null, ["string", "number"], ["lightgrid", opts.lightgrid]);
+      mod.ccall("rblx_set_render_option", null, ["string", "number"], ["shaders", opts.gles2 ? 1 : 0]);
+    } catch (e) {
+      console.warn("[rbx2016] render options not available", e);
+    }
+  }
+
+  let diagTimer = 0;
+  let diagFrames = 0;
+  function updateDiag() {
+    const box = $("diagBox");
+    if (!box) return;
+    const opts = renderOptions();
+    box.classList.toggle("on", opts.diag);
+    if (!opts.diag) return;
+    if (!diagTimer) {
+      diagTimer = setInterval(updateDiag, 1000);
+      const tick = () => { diagFrames++; requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }
+    const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    const info = gl && gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = gl && info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "?";
+    const version = gl ? gl.getParameter(gl.VERSION) : "?";
+    const maxTex = gl ? gl.getParameter(gl.MAX_TEXTURE_SIZE) : 0;
+    const max3D = gl ? gl.getParameter(gl.MAX_3D_TEXTURE_SIZE) : 0;
+    let frames = 0;
+    try { frames = engine ? engine.ccall("rblx_frame_count", "number", [], []) : 0; } catch (_) {}
+    box.textContent =
+      "renderer  " + renderer + "\n" +
+      "GL        " + version + "\n" +
+      "texture   " + maxTex + " / 3D " + max3D + "\n" +
+      "lighting  " + (opts.lightgrid === 0 ? "auto" : opts.lightgrid === 1 ? "2D grid" : "no grid") +
+      " | shaders " + (opts.gles2 ? "gles2" : "default") + "\n" +
+      "fps       " + diagFrames + " page / " + frames + " engine" + "\n" +
+      "isolated  " + (window.crossOriginIsolated ? "yes" : "no");
+    diagFrames = 0;
+  }
+
   // ---------------------------------------------------------------- catalog
   // The 2016 avatar files are scraped once into web/catalog by
   // port/tools/fetch_catalog.py; the page only reads the manifest.
@@ -1105,6 +1183,8 @@
       else if (catalogPage.classList.contains("open")) closeCatalog();
     });
     buildColourPickers();
+    installRenderOptions();
+    updateDiag();
     renderWorn();
     loadCatalog();  // keeps the "Wearing:" line on the menu in sync
     $("openFileBtn").addEventListener("click", () => openFile.click());

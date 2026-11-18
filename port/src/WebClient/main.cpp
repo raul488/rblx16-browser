@@ -60,6 +60,12 @@
 #include "util/RunStateOwner.h"
 #include "util/StandardOut.h"
 
+// Render options read by the patched VisualEngine (see port/src_patch).
+extern "C" {
+    int rblx2016_light_grid_mode = 0;  // 0 auto, 1 2D, 2 none
+    int rblx2016_gles2_shaders = 0;    // 1 = glsles shader pack
+}
+
 namespace {
     boost::shared_ptr<RBX::DataModel> g_dataModel;
     std::string g_username = "Player1";
@@ -536,6 +542,14 @@ void startAvatarApplication(const boost::shared_ptr<RBX::DataModel>& dm,
 }
 
 }  // namespace
+
+EMSCRIPTEN_KEEPALIVE void rblx_set_render_option(const char* name, int value) {
+    if (!name) return;
+    std::string option(name);
+    if (option == "lightgrid") rblx2016_light_grid_mode = value;
+    else if (option == "shaders") rblx2016_gles2_shaders = value;
+    std::fprintf(stderr, "RBLX2016: render option %s=%d\n", name, value);
+}
 
 EMSCRIPTEN_KEEPALIVE void rblx_set_avatar(const char* spec) {
     g_avatarSpec = spec ? spec : "";

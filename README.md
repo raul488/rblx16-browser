@@ -1,4 +1,4 @@
-# RBLX2016 — the 2016 Roblox client in a browser tab
+# RBLX2016 the 2016 Roblox client in a browser tab
 
 This repository compiles the 2016 Roblox C++ client to WebAssembly and runs it
 in the browser. It is a single-player, offline build: you pick a local
@@ -50,10 +50,15 @@ needs a physical keyboard.
   **Refresh**.
 - An avatar catalog with 2016-era shirts, t-shirts, pants, hats, hair,
   shoulder and back accessories and classic faces, plus body colours. Worn
-  items persist in the browser and are applied to your character.
+  items persist in the browser and are applied to your character. It works on
+  static hosting too: meshes and textures are packed with the site and only
+  the items you actually wear are downloaded, then cached by the browser.
 - Settings page: graphics mode/quality, fullscreen, camera/movement mode,
   mouse sensitivity, volume, screenshots and recording.
 - Optional "Unlock FPS" switch on the menu; the stock client caps at 30 FPS.
+- Renderer compatibility switches on the menu (2D light grid, no light grid,
+  GLES2 shader pack) plus an on-screen diagnostics panel with the renderer
+  name, GL version and texture limits.
 
 ## Known limitations
 

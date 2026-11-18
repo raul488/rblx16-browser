@@ -679,7 +679,11 @@ namespace RBX {
 		bool localProxy = false;
 		if (id.isHttp() && !baseUrl.empty()) {
 			const std::string s = id.toString();
-			const size_t assetPath = s.find("/asset/");
+			// Both "roblox.com/asset/?id=N" and the older "roblox.com/asset?id=N"
+			// appear in place files.
+			size_t assetPath = s.find("/asset/");
+			if (assetPath == std::string::npos)
+				assetPath = s.find("/asset?");
 			if (assetPath != std::string::npos &&
 				(s.find("roblox.com") != std::string::npos || s.rfind(baseUrl, 0) == 0)) {
 				id = ContentId(baseUrl + s.substr(assetPath + 1));

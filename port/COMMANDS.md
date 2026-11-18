@@ -24,6 +24,9 @@ python3 web/serve.py 8080
 # Optional: avatar catalog (web/catalog, gitignored)
 python3 port/tools/fetch_catalog.py
 
+# Optional: pack the meshes/textures the catalog and places need (web/assets)
+python3 port/tools/pack_assets.py
+
 # Optional: assets that need a Roblox session
 export ROBLOSECURITY='...'   # or save it on the menu / in asset-cookie.txt
 export ASSET_PLACE_ID=1818   # optional, for place-scoped assets

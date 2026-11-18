@@ -27,6 +27,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 PLACES_DIR = os.path.join(ROOT, "places")
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8080
 ASSET_CACHE = os.path.join(ROOT, "asset-cache")
+ASSETS_DIR = os.path.join(ROOT, "assets")
 ASSET_DELIVERY = os.environ.get(
     "ASSET_DELIVERY_BASE", "https://assetdelivery.roblox.com/v1/asset?id=")
 ASSET_COOKIE_FILES = [
@@ -39,8 +40,6 @@ ASSET_PLACE_ID = os.environ.get("ASSET_PLACE_ID", "").strip()
 ASSET_ID = re.compile(r"^\d{1,20}$")
 MAX_ASSET_BYTES = 64 * 1024 * 1024
 
-CATALOG_DIR = os.path.join(ROOT, "catalog")
-CATALOG_MANIFEST = os.path.join(CATALOG_DIR, "manifest.json")
 
 def current_cookie():
     """Return (token, source) with the same priority the UI shows."""
@@ -125,7 +124,11 @@ def gunzip_if_needed(data: bytes) -> bytes:
 
 
 def fetch_asset(asset_id: str) -> bytes:
-    """Return asset bytes, using the on-disk cache when possible."""
+    """Return asset bytes from the packed store, the cache, or assetdelivery."""
+    packed = os.path.join(ASSETS_DIR, asset_id + ".gz")
+    if os.path.isfile(packed):
+        with open(packed, "rb") as f:
+            return gunzip_if_needed(f.read())
     os.makedirs(ASSET_CACHE, exist_ok=True)
     cached = os.path.join(ASSET_CACHE, asset_id)
     if os.path.isfile(cached):
@@ -165,29 +168,6 @@ def fetch_asset(asset_id: str) -> bytes:
     return data
 
 
-_catalog_cache = {"stamp": None, "files": {}}
-
-
-def catalog_files():
-    """id -> file path for the scraped avatar catalog (empty if not scraped)."""
-    try:
-        stamp = os.path.getmtime(CATALOG_MANIFEST)
-    except OSError:
-        return {}
-    if _catalog_cache["stamp"] == stamp:
-        return _catalog_cache["files"]
-    try:
-        with open(CATALOG_MANIFEST, encoding="utf-8") as f:
-            items = json.load(f).get("items", [])
-    except (OSError, ValueError):
-        return {}
-    files = {str(item["id"]): os.path.join(CATALOG_DIR, item["file"])
-             for item in items if item.get("file")}
-    _catalog_cache["stamp"] = stamp
-    _catalog_cache["files"] = files
-    return files
-
-
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
@@ -200,8 +180,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self.send_json(list_places())
         if path in ("/asset", "/asset/"):
             return self.serve_asset()
-        if path.startswith("/catalog/item/"):
-            return self.serve_catalog_item(path.rsplit("/", 1)[-1])
         return super().do_GET()
 
     def do_POST(self):
@@ -268,28 +246,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-
-    def serve_catalog_item(self, item_id):
-        """Serve a scraped catalog item by id; the manifest knows the extension."""
-        if not ASSET_ID.match(item_id):
-            self.send_error(400, "invalid item id")
-            return
-        source = catalog_files().get(item_id)
-        if not source or not os.path.isfile(source):
-            self.send_error(404, "catalog item not found")
-            return
-        try:
-            with open(source, "rb") as f:
-                data = f.read()
-        except OSError as exc:
-            self.send_error(500, str(exc))
-            return
-        self.send_response(200)
-        self.send_header("Content-Type", "application/octet-stream")
-        self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "public, max-age=31536000, immutable")
-        self.end_headers()
-        self.wfile.write(data)
 
     def serve_asset(self):
         query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

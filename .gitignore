@@ -27,7 +27,7 @@ port/shim/RbxG3D
 # --- Runtime caches -----------------------------------------------------------
 web/asset-cache/
 # Scraped avatar catalog (port/tools/fetch_catalog.py regenerates it)
-web/catalog/
+web/catalog/.cache/
 web/__pycache__/
 __pycache__/
 *.py[cod]

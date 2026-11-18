@@ -69,9 +69,9 @@ CATEGORIES = {
 
 # types stored as engine models (rbxmx/rbxm) rather than a texture
 MODEL_TYPES = {"hat", "hair", "shoulder", "back"}
-FOLDERS = {"shirt": "shirts", "tshirt": "tshirts", "pants": "pants",
-           "hat": "hats", "hair": "hair", "face": "faces",
-           "shoulder": "shoulders", "back": "backs"}
+# Items are stored as catalog/item/<id> with no extension, so any static host
+# can serve them at the URL the engine asks for.
+ITEM_DIR = "item"
 
 ASSET_CACHE = os.path.join(ROOT, "web", "asset-cache")
 UA = {"User-Agent": "Mozilla/5.0 (rblx2016-catalog)"}
@@ -338,7 +338,7 @@ def prefetch_assets(ids):
     failures = []
     with ThreadPoolExecutor(max_workers=6) as pool:
         for asset_id, status in pool.map(fetch_one, ids):
-            if status == "failed":
+            if status.startswith("failed"):
                 counts["failed"] += 1
                 failures.append(asset_id)
                 print(f"  asset {asset_id} {status}", file=sys.stderr)
@@ -403,20 +403,17 @@ def main():
     def save_item(index_item):
         n, it = index_item
         aid, kind = it["id"], it["type"]
-        folder = FOLDERS[kind]
+        rel = f"{ITEM_DIR}/{aid}"
         try:
+            path = os.path.join(OUT, rel)
             if kind in MODEL_TYPES:
-                existing = [f"files/{folder}/{aid}{e}" for e in (".rbxmx", ".rbxm")]
-                rel = next((p for p in existing if os.path.isfile(os.path.join(OUT, p))), None)
-                if not rel:
+                if not os.path.isfile(path) or os.path.getsize(path) == 0:
                     data = normalize_model_urls(
                         fetch(f"https://assetdelivery.roblox.com/v1/asset?id={aid}"))
-                    rel = f"files/{folder}/{aid}" + (".rbxmx" if data[:8] == b"<roblox " else ".rbxm")
-                    os.makedirs(os.path.dirname(os.path.join(OUT, rel)), exist_ok=True)
-                    with open(os.path.join(OUT, rel), "wb") as f:
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    with open(path, "wb") as f:
                         f.write(data)
             else:
-                rel = f"files/{folder}/{aid}.png"
                 path = os.path.join(OUT, rel)
                 keep = os.path.isfile(path) and os.path.getsize(path) > 0
                 if not keep:
