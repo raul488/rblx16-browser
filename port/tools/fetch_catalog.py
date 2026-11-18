@@ -5,8 +5,9 @@
     python3 port/tools/fetch_catalog.py --types face --limit 20
 
 Collects classic Shirts, T-Shirts, Pants, head Hats and classic Faces made by
-armitroner, the ROBLOX account and a list of 2016-era administrators, keeps
-only items first created in 2016 or earlier, and writes:
+armitroner, the ROBLOX account, a list of 2016-era administrators and the
+prolific pre-2016 clothing designers, keeps only items first created in 2016 or
+earlier, and writes:
 
     web/catalog/files/<type>/<id>.<png|rbxm|rbxmx>   template / hat model
     web/catalog/thumbs/<id>.png                      catalog thumbnail
@@ -55,6 +56,19 @@ CREATORS = {
     1726: "knightmare",
 }
 
+# Classic-clothing designers who were already prolific before 2017. Clothing
+# only, so their hats/hair do not flood the other tabs; names are the ones the
+# clothes were sold under, not today's username (commented where they differ).
+CLOTHING_CREATORS = {
+    469797: "VendettaTheGreat",   # 2008 Golden Shirt of Bling Bling
+    119813: "Plad",               # 2008 armour shirts
+    723341: "Keletho",            # 2009 skate jackets
+    441825: "GPR3",
+    926275: "1UK",
+    3928497: "Shaddic",
+    3487360: "ibloxu20",
+}
+
 # type -> (catalog Category, Subcategory) queried per creator
 CATEGORIES = {
     "shirt": (3, 56),
@@ -69,6 +83,274 @@ CATEGORIES = {
 
 # types stored as engine models (rbxmx/rbxm) rather than a texture
 MODEL_TYPES = {"hat", "hair", "shoulder", "back"}
+
+# classic clothing asset types -> manifest type
+CLOTHING_ASSET_TYPES = {2: "tshirt", 11: "shirt", 12: "pants"}
+
+# Items are stored as catalog/item/<id> with no extension, so any static host
+# can serve them at the URL the engine asks for.
+ITEM_DIR = "item"
+
+ASSET_CACHE = os.path.join(ROOT, "web", "asset-cache")
+UA = {"User-Agent": "Mozilla/5.0 (rblx2016-catalog)"}
+COOKIE = None
+_last = {}
+_last_lock = threading.Lock()
+
+
+def headers():
+    return {**UA, "Cookie": f".ROBLOSECURITY={COOKIE}"} if COOKIE else dict(UA)
+
+
+def throttle(url):
+    """catalog.roblox.com allows 12 requests/minute per IP; the rest are roomy.
+
+    Slots are reserved under the lock so the download pool can share one host
+    budget instead of sleeping in lockstep.
+    """
+    host = urllib.parse.urlsplit(url).netloc
+    gap = 5.5 if host == "catalog.roblox.com" else 0.12
+    with _last_lock:
+        now = time.monotonic()
+        wait = _last.get(host, 0) + gap - now
+        _last[host] = max(now, _last.get(host, 0) + gap)
+    if wait > 0:
+        time.sleep(wait)
+
+
+def fetch(url, tries=5):
+    for attempt in range(1, tries + 1):
+        throttle(url)
+        try:
+            req = urllib.request.Request(url, headers=headers())
+            with urllib.request.urlopen(req, timeout=90) as r:
+                data = r.read()
+                for _ in range(3):
+                    if data[:2] != b"\x1f\x8b":
+                        break
+                    try:
+                        unzipped = gzip.decompress(data)
+                    except OSError:
+                        break
+                    if len(unzipped) < 16 or unzipped == data:
+                        break
+                    data = unzipped
+                return data
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                raise RuntimeError(
+                    f"{e.code} for {url[:70]} - Roblox only serves user-uploaded "
+                    "assets to a logged-in session; pass --cookie")
+            if e.code == 404 or attempt == tries:
+                raise
+            delay = float(e.headers.get("retry-after") or 60) if e.code == 429 else 2 ** attempt
+            print(f"  {e.code} on {url[:60]}... waiting {delay:.0f}s", file=sys.stderr)
+            time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+            if attempt == tries:
+                raise
+            time.sleep(2 ** attempt)
+
+
+def get_json(url):
+    return json.loads(fetch(url))
+
+
+def cached_json(url, key):
+    """Details lookups are the slow part of a rerun; keep them in the catalog dir."""
+    path = os.path.join(OUT, ".cache", key + ".json")
+    if os.path.isfile(path):
+        try:
+            with open(path, encoding="utf-8") as f:
+                return json.load(f)
+        except ValueError:
+            pass
+    data = get_json(url)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    return data
+
+
+def search(creator, category, subcategory=None):
+    """Yield every catalog item of one category for one creator."""
+    cursor = None
+    while True:
+        url = ("https://catalog.roblox.com/v1/search/items/details"
+               f"?Category={category}")
+        if subcategory is not None:
+            url += f"&Subcategory={subcategory}"
+        url += (f"&CreatorTargetId={creator}&CreatorType=User&Limit=30"
+                "&IncludeNotForSale=true")
+        if cursor:
+            url += "&Cursor=" + urllib.parse.quote(cursor)
+        page = get_json(url)
+        for item in page.get("data", []):
+            if item.get("itemType") == "Asset":
+                yield item
+        cursor = page.get("nextPageCursor")
+        if not cursor:
+            return
+
+
+def template_image(asset_id):
+    """Classic clothing/face assets wrap the actual texture; return the image."""
+    data = fetch(f"https://assetdelivery.roblox.com/v1/asset?id={asset_id}")
+    if data[:4] in (b"\x89PNG", b"\xff\xd8\xff\xe0", b"\xff\xd8\xff\xe1"):
+        return data
+    text = data.decode("utf-8", "replace")
+    m = re.search(r"roblox\.com/asset/[^<\s]*?[?&]id=(\d+)", text) or re.search(
+        r"rbxassetid://(\d+)", text)
+    if not m or m.group(1) == str(asset_id):
+        return data  # a plain decal XML is still usable by the client
+    return fetch(f"https://assetdelivery.roblox.com/v1/asset?id={m.group(1)}")
+
+
+def normalize_model_urls(data):
+    """Some 2007-era models store "id= 12345" with a space; the engine can't parse it."""
+    if data[:8] != b"<roblox ":
+        return data
+    text = data.decode("utf-8", "replace")
+    fixed = re.sub(r"(id=)\s+(\d)", r"\1\2", text)
+    return fixed.encode("utf-8") if fixed != text else data
+
+
+def is_image(data):
+    return data[:4] == b"\x89PNG" or data[:3] == b"\xff\xd8\xff"
+
+
+def download(url, path, skip_existing=True):
+    if skip_existing and os.path.isfile(path) and os.path.getsize(path) > 0:
+        return True
+    data = fetch(url)
+    if not data:
+        return False
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(data)
+    return True
+
+
+def creator_items(types):
+    """Collect catalog-listed items (clothing + hats) for every creator."""
+    items = []
+    for cid, cname in {**CREATORS, **CLOTHING_CREATORS}.items():
+        clothing = [k for k in types if k in CLOTHING_ASSET_TYPES.values()]
+        if clothing:
+            items += clothing_items(cid, cname, clothing)
+        if cid in CLOTHING_CREATORS:
+            continue
+        for kind in types:
+            if kind in CLOTHING_ASSET_TYPES.values():
+                continue
+            if kind not in CATEGORIES or CATEGORIES[kind] is None:
+                continue
+            cache = os.path.join(OUT, ".cache", f"list-{cid}-{kind}.json")
+            if os.path.isfile(cache):
+                with open(cache, encoding="utf-8") as f:
+                    cached = json.load(f)
+                items.extend(cached)
+                print(f"  {cname:22} {kind:7} {len(cached)} (cached)")
+                continue
+            category, subcategory = CATEGORIES[kind]
+            found = 0
+            this = []
+            for item in search(cid, category, subcategory):
+                created = (item.get("itemCreatedUtc") or "")[:10]
+                if created and created > CUTOFF:
+                    continue
+                this.append({
+                    "id": item["id"],
+                    "type": kind,
+                    "name": item.get("name") or "",
+                    "creator": cname,
+                    "created": created,
+                })
+                found += 1
+            os.makedirs(os.path.dirname(cache), exist_ok=True)
+            with open(cache, "w", encoding="utf-8") as f:
+                json.dump(this, f)
+            items.extend(this)
+            print(f"  {cname:22} {kind:7} {found}")
+    return items
+
+
+def clothing_items(cid, cname, kinds):
+    """One Category=3 sweep per creator, split by assetType.
+
+    Three per-subcategory searches cost three times the rate-limited catalog
+    pages for the same clothes.
+    """
+    cached = {}
+    for kind in kinds:
+        path = os.path.join(OUT, ".cache", f"list-{cid}-{kind}.json")
+        if not os.path.isfile(path):
+            break
+        with open(path, encoding="utf-8") as f:
+            cached[kind] = json.load(f)
+    if len(cached) == len(kinds):
+        items = []
+        for kind in kinds:
+            items += cached[kind]
+            print(f"  {cname:22} {kind:7} {len(cached[kind])} (cached)")
+        return items
+
+    found = {kind: [] for kind in kinds}
+    for item in search(cid, 3):
+        kind = CLOTHING_ASSET_TYPES.get(item.get("assetType"))
+        if kind not in found:
+            continue
+        created = (item.get("itemCreatedUtc") or "")[:10]
+        if created and created > CUTOFF:
+            continue
+        found[kind].append({
+            "id": item["id"],
+            "type": kind,
+            "name": item.get("name") or "",
+            "creator": cname,
+            "created": created,
+        })
+    items = []
+    for kind in kinds:
+        path = os.path.join(OUT, ".cache", f"list-{cid}-{kind}.json")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(found[kind], f)
+        items += found[kind]
+        print(f"  {cname:22} {kind:7} {len(found[kind])}")
+    return items
+
+
+def face_items():
+    """Classic faces: ids from the community archive, dated and fetched from Roblox."""
+    archive = get_json(FACE_ARCHIVE)
+    print(f"  archive: {len(archive)} classic faces")
+    items = []
+    for entry in archive:
+        aid = entry.get("id")
+        if not aid:
+            continue
+        try:
+            details = cached_json(f"https://economy.roblox.com/v2/assets/{aid}/details",
+                                  f"asset-{aid}")
+        except Exception as e:
+            print(f"  face {aid} details failed: {e}", file=sys.stderr)
+            continue
+        if details.get("AssetTypeId") != 18:
+            continue
+        created = (details.get("Created") or "")[:10]
+        if created and created > CUTOFF:
+            continue
+        items.append({
+            "id": aid,
+            "type": "face",
+            "name": details.get("Name") or entry.get("name") or "",
+            "creator": (details.get("Creator") or {}).get("Name") or "Roblox",
+            "created": created,
+        })
+    print(f"  faces  2016 and older: {len(items)}")
+    return items
+
 
 def thumbnails(items):
     """Batch the 150x150 catalog thumbnails; they are public CDN URLs."""
