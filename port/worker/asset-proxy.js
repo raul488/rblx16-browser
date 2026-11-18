@@ -8,7 +8,7 @@
  *   GET /asset/?id=N  ->  asset bytes (application/octet-stream)
  *
  * Deploy:  npx wrangler deploy   (or upload through the Cloudflare API)
- * Secret:  npx wrangler secret put ROBLOX_COOKIE
+ * Secret:  npx wrangler secret put ROBLOSECURITY_COOKIE
  *
  * Anyone who knows the URL can use it to pull assets with this session, so
  * keep the URL out of public places you do not control.
