@@ -23,6 +23,7 @@ downloaded from Roblox, with the archive PNG as a fallback.
 """
 import argparse
 import gzip
+import html
 import json
 import os
 import re
@@ -60,6 +61,7 @@ CREATORS = {
 # only, so their hats/hair do not flood the other tabs; names are the ones the
 # clothes were sold under, not today's username (commented where they differ).
 CLOTHING_CREATORS = {
+    916: "Matt Dusek",            # 2006 account; Smiley Flower t-shirt
     469797: "VendettaTheGreat",   # 2008 Golden Shirt of Bling Bling
     119813: "Plad",               # 2008 armour shirts
     723341: "Keletho",            # 2009 skate jackets
@@ -198,7 +200,8 @@ def template_image(asset_id):
     data = fetch(f"https://assetdelivery.roblox.com/v1/asset?id={asset_id}")
     if data[:4] in (b"\x89PNG", b"\xff\xd8\xff\xe0", b"\xff\xd8\xff\xe1"):
         return data
-    text = data.decode("utf-8", "replace")
+    # 2007 decals store the URL XML-escaped ("&amp;id="), so unescape first.
+    text = html.unescape(data.decode("utf-8", "replace"))
     m = re.search(r"roblox\.com/asset/[^<\s]*?[?&]id=(\d+)", text) or re.search(
         r"rbxassetid://(\d+)", text)
     if not m or m.group(1) == str(asset_id):
