@@ -515,6 +515,14 @@ def main():
             print(f"[{n}/{total}] {it['type']:6} {it['id']:>12} {it['created']} {it['name'][:40]}")
             manifest.append({**it, "file": rel, "thumb": f"thumbs/{it['id']}.png"})
 
+    # Hand-made items (web/catalog/local-items.json) survive a rescrape.
+    local = os.path.join(OUT, "local-items.json")
+    if os.path.isfile(local):
+        with open(local, encoding="utf-8") as f:
+            for entry in json.load(f).get("items", []):
+                if entry.get("file") and os.path.isfile(os.path.join(OUT, entry["file"])):
+                    manifest.append(entry)
+
     # Manifest first: a thumbnail hiccup must not cost us the catalog.
     with open(os.path.join(OUT, "manifest.json"), "w") as f:
         json.dump({"items": manifest}, f, indent=1)

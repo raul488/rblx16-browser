@@ -1,0 +1,13 @@
+{
+ "items": [
+  {
+   "id": 900001,
+   "type": "tshirt",
+   "name": "DeepSeek T-Shirt",
+   "creator": "DeepSeek",
+   "created": "2026-11-18",
+   "file": "item/900001",
+   "thumb": "thumbs/900001.png"
+  }
+ ]
+}
