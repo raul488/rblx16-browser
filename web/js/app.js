@@ -398,7 +398,9 @@
       // to assetdelivery and caches the bytes.
       const rc = mod.ccall("rblx_start_place", "number",
         ["number", "number", "string", "string", "number"],
-        [ptr, bytes.length, name, location.origin + "/", touchDevice ? 1 : 0]);
+        // Must include the subpath: a project page lives under /<repo>/ and
+        // the engine resolves catalog/item/<id> and /asset against this.
+        [ptr, bytes.length, name, new URL(".", location.href).href, touchDevice ? 1 : 0]);
       mod._free(ptr);
       if (rc !== 0) throw new Error("rblx_start_place returned " + rc);
       try {
