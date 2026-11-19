@@ -33,6 +33,10 @@ async function gunzip(response) {
 function withIsolationHeaders(response) {
   if (response.status === 0) return response;
   const headers = new Headers(response.headers);
+  // fetch() already decoded the body, so the original encoding and length no
+  // longer describe it (GitHub Pages gzips XML/text files).
+  headers.delete("Content-Encoding");
+  headers.delete("Content-Length");
   headers.set("Cross-Origin-Embedder-Policy", "require-corp");
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
   headers.set("Cross-Origin-Resource-Policy", "cross-origin");
