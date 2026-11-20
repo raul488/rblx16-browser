@@ -168,10 +168,17 @@ def cached_json(url, key):
         except ValueError:
             pass
     data = get_json(url)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f)
+    cache_write(path, data)
     return data
+
+
+def cache_write(path, data):
+    """A stopped scrape must not leave a half-written cache behind."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    os.replace(tmp, path)
 
 
 def search(creator, category, subcategory=None):
@@ -324,6 +331,110 @@ def clothing_items(cid, cname, kinds):
     return items
 
 
+# Classic head/hair pieces that only show up through a name search. Keep as a
+# fallback for items the collectibles sweep still misses.
+LEGACY_NAMES = [
+    "Dominus", "Ice Crown", "Sparkle Time", "Valkyrie", "Clockwork",
+    "Sparkle Time Fedora", "Bighead", "Shaggy", "Wisp", "Federation",
+    "Domino Crown", "Hooded", "Antlers", "Halo", "Teapot", "Bluesteel",
+    "Red Valk", "Bacon Hair", "Pal Hair", "Roblox Cap", "Bucket", "Crown",
+]
+# 42 is a 3D face accessory (a model), not the 2D face decal type.
+ACCESSORY_TYPES = {8: "hat", 41: "hair", 42: "hat", 43: "back",
+                   44: "shoulder", 45: "back", 46: "back", 47: "back"}
+
+# Category=11 only returns the ordinary listings; limiteds and other
+# collectibles live behind SalesTypeFilter=2, and IncludeNotForSale keeps the
+# ones no longer purchasable.
+SWEEPS = {
+    "collectibles": "&SalesTypeFilter=2",
+}
+
+
+def accessory_sweep(name, extra):
+    """Walk one Roblox accessory listing.
+
+    30 items a page at 12 requests a minute, so the result and cursor are
+    cached and the walk resumes after a stop; delete the cache to start over.
+    """
+    cache = os.path.join(OUT, ".cache", f"accessories-{name}.json")
+    found, cursor, pages = [], None, 0
+    if os.path.isfile(cache):
+        try:
+            with open(cache, encoding="utf-8") as f:
+                state = json.load(f)
+            found, cursor, pages = state["items"], state["cursor"], state["pages"]
+            print(f"  {name} sweep: {len(found)} kept, page {pages} (cached)")
+        except (ValueError, KeyError):
+            found, cursor, pages = [], None, 0
+    while cursor is not None or pages == 0:
+        url = ("https://catalog.roblox.com/v1/search/items/details"
+               "?Category=11&CreatorTargetId=1&CreatorType=User&Limit=30"
+               "&IncludeNotForSale=true" + extra)
+        if cursor:
+            url += "&Cursor=" + urllib.parse.quote(cursor)
+        page_data = get_json(url)
+        for item in page_data.get("data", []):
+            kind = ACCESSORY_TYPES.get(item.get("assetType"))
+            created = (item.get("itemCreatedUtc") or "")[:10]
+            if kind and (not created or created <= CUTOFF):
+                found.append({"id": item["id"], "type": kind,
+                              "name": item.get("name") or "",
+                              "creator": "Roblox", "created": created})
+        cursor = page_data.get("nextPageCursor")
+        pages += 1
+        cache_write(cache, {"items": found, "cursor": cursor, "pages": pages})
+        if pages % 20 == 0:
+            print(f"  {name} page {pages}: {len(found)} kept")
+        if pages >= 1200:
+            print(f"  {name} sweep hit the page cap", file=sys.stderr)
+            break
+    print(f"  {name} sweep: {len(found)} kept over {pages} pages")
+    return found
+
+
+def extra_accessories():
+    """Add the accessory listings the per-creator category searches miss."""
+    found = []
+    for name, extra in SWEEPS.items():
+        found += accessory_sweep(name, extra)
+
+    for name in LEGACY_NAMES:
+        # The plain listing and the collectibles listing rank differently:
+        # Dominus Empyreus is only in the first, The Ice Crown only in the
+        # second. Cache per name so a rerun costs one sweep, not 44 searches.
+        cache = os.path.join(OUT, ".cache", "name-"
+                             + re.sub(r"[^a-z0-9]+", "-", name.lower()) + ".json")
+        if os.path.isfile(cache):
+            try:
+                with open(cache, encoding="utf-8") as f:
+                    found += json.load(f)
+                continue
+            except ValueError:
+                pass
+        items = []
+        for extra in ("", "&SalesTypeFilter=2"):
+            try:
+                page_data = get_json(
+                    "https://catalog.roblox.com/v1/search/items/details"
+                    "?Keyword=" + urllib.parse.quote(name)
+                    + "&Category=11&CreatorTargetId=1&CreatorType=User"
+                    "&Limit=30&IncludeNotForSale=true" + extra)
+            except Exception as exc:
+                print(f"  search {name} failed: {exc}", file=sys.stderr)
+                continue
+            for item in page_data.get("data", []):
+                kind = ACCESSORY_TYPES.get(item.get("assetType"))
+                created = (item.get("itemCreatedUtc") or "")[:10]
+                if kind and created and created <= CUTOFF:
+                    items.append({"id": item["id"], "type": kind,
+                                  "name": item.get("name") or "",
+                                  "creator": "Roblox", "created": created})
+        cache_write(cache, items)
+        found += items
+    return found
+
+
 def face_items():
     """Classic faces: ids from the community archive, dated and fetched from Roblox."""
     archive = get_json(FACE_ARCHIVE)
@@ -453,6 +564,9 @@ def main():
     items = []
     print("catalog listings:")
     items += creator_items([t for t in types if t in CATEGORIES])
+    if "hat" in types:
+        print("accessories sweep:")
+        items += extra_accessories()
     if "face" in types:
         print("classic faces:")
         items += face_items()
