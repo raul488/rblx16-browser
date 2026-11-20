@@ -63,8 +63,8 @@ assets.
 - An avatar catalog with 2008–2016 classic clothing (shirts, t-shirts, pants)
   from Roblox, armitroner and the era's designers — VendettaTheGreat, Plad,
   Keletho, GPR3, 1UK, Shaddic, ibloxu20 — plus hats, hair, shoulder and back
-  accessories, classic faces and body colours. Worn items persist in the
-  browser and are applied to your character. Item meshes and textures come
+  accessories, classic heads and faces, and body colours. Worn items persist in
+  the browser and are applied to your character. Item meshes and textures come
   from Roblox: the local server with a saved `.ROBLOSECURITY` cookie is the
   default source, and a static host can use the Worker proxy instead (see
   [Hosting](#hosting)).

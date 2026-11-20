@@ -4,10 +4,10 @@
     python3 port/tools/fetch_catalog.py            # everything, 2016 and older
     python3 port/tools/fetch_catalog.py --types face --limit 20
 
-Collects classic Shirts, T-Shirts, Pants, head Hats and classic Faces made by
-armitroner, the ROBLOX account, a list of 2016-era administrators and the
-prolific pre-2016 clothing designers, keeps only items first created in 2016 or
-earlier, and writes:
+Collects classic Shirts, T-Shirts, Pants, head Hats, classic Faces and classic
+Heads made by armitroner, the ROBLOX account, a list of 2016-era administrators
+and the prolific pre-2016 clothing designers, keeps only items first created in
+2016 or earlier, and writes:
 
     web/catalog/files/<type>/<id>.<png|rbxm|rbxmx>   template / hat model
     web/catalog/thumbs/<id>.png                      catalog thumbnail
@@ -17,9 +17,9 @@ Roblox only serves user-uploaded assets to a logged-in session, so pass
 --cookie, set ROBLOX_COOKIE, or keep the cookie the page already saves in
 asset-cookie.txt next to web/. Roblox's own items download without one.
 
-Faces are no longer listed by catalog search (they were retired in 2026), so
-their ids come from synpixel/roblox-classic-faces; each one is still dated and
-downloaded from Roblox, with the archive PNG as a fallback.
+Faces and heads are no longer listed by catalog search (they were retired in
+2026), so their ids come from synpixel/roblox-classic-faces; each one is still
+dated and downloaded from Roblox, with the archive PNG as a face fallback.
 """
 import argparse
 import gzip
@@ -41,6 +41,11 @@ FACE_ARCHIVE = ("https://raw.githubusercontent.com/synpixel/roblox-classic-faces
                 "main/classic-faces.json")
 FACE_ARCHIVE_PNG = ("https://raw.githubusercontent.com/synpixel/roblox-classic-faces/"
                     "main/classic-faces/{id}.png")
+HEAD_ARCHIVE = ("https://raw.githubusercontent.com/synpixel/roblox-classic-faces/"
+                "main/classic-heads.json")
+# Roblox's own placeholder head ("This is a test item! Do not buy it."): no
+# thumbnail, and it is just the default head shape.
+HEAD_TEST_ITEM = 91367257
 CUTOFF = "2016-12-31"
 
 # 2016-era Roblox administrators. Edit freely; ids must be user ids.
@@ -79,12 +84,13 @@ CATEGORIES = {
     "hat": (11, 54),        # head
     "hair": (18, 20),   # Body > Hair
     "face": None,           # classic faces come from the archive below
+    "head": None,           # classic heads come from the archive below
     "shoulder": (11, 23),
     "back": (11, 25),
 }
 
 # types stored as engine models (rbxmx/rbxm) rather than a texture
-MODEL_TYPES = {"hat", "hair", "shoulder", "back"}
+MODEL_TYPES = {"head", "hat", "hair", "shoulder", "back"}
 
 # classic clothing asset types -> manifest type
 CLOTHING_ASSET_TYPES = {2: "tshirt", 11: "shirt", 12: "pants"}
@@ -435,10 +441,10 @@ def extra_accessories():
     return found
 
 
-def face_items():
-    """Classic faces: ids from the community archive, dated and fetched from Roblox."""
-    archive = get_json(FACE_ARCHIVE)
-    print(f"  archive: {len(archive)} classic faces")
+def archive_items(url, kind, asset_type):
+    """Retired catalog types: ids from the community archive, dated on economy."""
+    archive = get_json(url)
+    print(f"  archive: {len(archive)} classic {kind}s")
     items = []
     for entry in archive:
         aid = entry.get("id")
@@ -448,22 +454,33 @@ def face_items():
             details = cached_json(f"https://economy.roblox.com/v2/assets/{aid}/details",
                                   f"asset-{aid}")
         except Exception as e:
-            print(f"  face {aid} details failed: {e}", file=sys.stderr)
+            print(f"  {kind} {aid} details failed: {e}", file=sys.stderr)
             continue
-        if details.get("AssetTypeId") != 18:
+        if details.get("AssetTypeId") != asset_type:
             continue
         created = (details.get("Created") or "")[:10]
         if created and created > CUTOFF:
             continue
         items.append({
             "id": aid,
-            "type": "face",
+            "type": kind,
             "name": details.get("Name") or entry.get("name") or "",
             "creator": (details.get("Creator") or {}).get("Name") or "Roblox",
             "created": created,
         })
-    print(f"  faces  2016 and older: {len(items)}")
+    print(f"  {kind}s  2016 and older: {len(items)}")
     return items
+
+
+def face_items():
+    """Classic faces: ids from the community archive, dated and fetched from Roblox."""
+    return archive_items(FACE_ARCHIVE, "face", 18)
+
+
+def head_items():
+    """Classic heads (asset type 17), minus Roblox's placeholder/test head."""
+    return [it for it in archive_items(HEAD_ARCHIVE, "head", 17)
+            if it["id"] != HEAD_TEST_ITEM]
 
 
 def thumbnails(items):
@@ -485,11 +502,12 @@ def thumbnails(items):
                 print(f"  thumbnail {aid} failed: {e}", file=sys.stderr)
 
 
-ASSET_REF = re.compile(rb"(?:roblox\.com/asset/[^\s<\"]*?[?&]id=|rbxassetid://)(\d{1,20})")
+ASSET_REF = re.compile(
+    rb"(?:roblox\.com/asset(?:/[^\s<\"]*?)?[?&]id=|rbxassetid://)(\d{1,20})")
 
 
 def hat_assets(items):
-    """Mesh/texture assets the hat models point at; fetched so hats work offline."""
+    """Mesh/texture assets the hat and head models point at, so they work offline."""
     ids = set()
     for it in items:
         if it["type"] not in MODEL_TYPES:
@@ -504,7 +522,7 @@ def hat_assets(items):
 
 
 def prefetch_assets(ids):
-    """Copy hat meshes/textures into web/asset-cache, decompressed."""
+    """Copy model meshes/textures into web/asset-cache, decompressed."""
     def fetch_one(asset_id):
         path = os.path.join(ASSET_CACHE, asset_id)
         if os.path.isfile(path) and os.path.getsize(path) > 0:
@@ -528,7 +546,7 @@ def prefetch_assets(ids):
                 print(f"  asset {asset_id} {status}", file=sys.stderr)
             else:
                 counts[status] += 1
-    print(f"  hat assets: {counts['ok']} fetched, {counts['cached']} cached, "
+    print(f"  model assets: {counts['ok']} fetched, {counts['cached']} cached, "
           f"{counts['failed']} unavailable")
     return failures
 
@@ -540,7 +558,7 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--cookie", help=".ROBLOSECURITY value (or ROBLOX_COOKIE env)")
     ap.add_argument("--out", default=OUT, help=f"output folder (default: {OUT})")
-    ap.add_argument("--types", default="shirt,tshirt,pants,hat,hair,shoulder,back,face")
+    ap.add_argument("--types", default="shirt,tshirt,pants,hat,hair,shoulder,back,face,head")
     ap.add_argument("--limit", type=int, default=0, help="debug: stop after N items per type")
     args = ap.parse_args()
 
@@ -570,6 +588,9 @@ def main():
     if "face" in types:
         print("classic faces:")
         items += face_items()
+    if "head" in types:
+        print("classic heads:")
+        items += head_items()
 
     # one entry per id; a face and a clothing item can never share an id
     seen = {}
@@ -648,7 +669,7 @@ def main():
     print("thumbnails:")
     thumbnails(manifest)
 
-    print("hat meshes/textures:")
+    print("model meshes/textures:")
     prefetch_assets(hat_assets(manifest))
     print("done")
 

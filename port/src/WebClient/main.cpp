@@ -445,6 +445,11 @@ bool isAccessoryModel(const std::string& type) {
     return type == "hat" || type == "shoulder" || type == "back" || type == "acc";
 }
 
+// Classic heads are bare SpecialMesh models; the engine swaps them onto Head.
+bool isHeadModel(const std::string& type) {
+    return type == "head";
+}
+
 // A loaded model may wrap the wearable (body packages are a Folder holding a
 // CharacterMesh), so keep only the appearance pieces and their children.
 void collectAppearance(const boost::shared_ptr<RBX::Instance>& root,
@@ -464,8 +469,9 @@ void collectAppearance(const boost::shared_ptr<RBX::Instance>& root,
 
 void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::string& base,
                      const std::vector<AvatarEntry>& entries, std::array<int, 6> body,
-                     const std::vector<boost::shared_ptr<RBX::Instance>>& hats) {
-    dm->submitTask([base, entries, body, hats](RBX::DataModel* model) {
+                     const std::vector<boost::shared_ptr<RBX::Instance>>& hats,
+                     const std::vector<boost::shared_ptr<RBX::Instance>>& heads) {
+    dm->submitTask([base, entries, body, hats, heads](RBX::DataModel* model) {
         RBX::Network::Players* players = model->find<RBX::Network::Players>();
         RBX::Network::Player* player = players
             ? RBX::Instance::fastDynamicCast<RBX::Network::Player>(players->getLocalPlayerDangerous())
@@ -508,6 +514,8 @@ void applyAvatarTask(const boost::shared_ptr<RBX::DataModel>& dm, const std::str
         RBX::BodyColors::prop_RightLegColor.setValue(colors.get(), RBX::BrickColor(body[5]));
         worn.insert(worn.begin(), colors);
         for (const boost::shared_ptr<RBX::Instance>& model : hats) collectAppearance(model, worn);
+        // Heads are DataModelMesh models; the appearance applier swaps them in.
+        worn.insert(worn.end(), heads.begin(), heads.end());
 
         for (const boost::shared_ptr<RBX::Instance>& item : worn) {
             if (!item) continue;
@@ -534,29 +542,31 @@ void startAvatarApplication(const boost::shared_ptr<RBX::DataModel>& dm,
         std::array<int, 6> body;
         std::vector<AvatarEntry> entries = parseAvatarSpec(spec, body.data());
         std::vector<boost::shared_ptr<RBX::Instance>> hats;
+        std::vector<boost::shared_ptr<RBX::Instance>> heads;
         try {
             RBX::ContentProvider* contentProvider =
                 RBX::ServiceProvider::find<RBX::ContentProvider>(dm.get());
             for (const AvatarEntry& e : entries) {
-                if (!isAccessoryModel(e.type) || !contentProvider) continue;
+                const bool head = isHeadModel(e.type);
+                if ((!head && !isAccessoryModel(e.type)) || !contentProvider) continue;
                 std::vector<boost::shared_ptr<RBX::Instance>> loaded;
                 try {
                     contentProvider->blockingLoadInstances(
                         RBX::ContentId(avatarUrl(base, e.id)), loaded);
                 } catch (const std::exception& ex) {
                     RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
-                        "RBLX2016: accessory %lld failed: %s", e.id, ex.what());
+                        "RBLX2016: %s %lld failed: %s", e.type.c_str(), e.id, ex.what());
                     continue;
                 }
                 for (const boost::shared_ptr<RBX::Instance>& inst : loaded)
-                    if (inst) hats.push_back(inst);
+                    if (inst) (head ? heads : hats).push_back(inst);
             }
         } catch (...) {
             g_avatarBusy.store(false);
             return;
         }
         try {
-            applyAvatarTask(dm, base, entries, body, hats);
+            applyAvatarTask(dm, base, entries, body, hats, heads);
         } catch (const std::exception& e) {
             RBX::StandardOut::singleton()->printf(RBX::MESSAGE_WARNING,
                 "RBLX2016: avatar apply failed: %s", e.what());

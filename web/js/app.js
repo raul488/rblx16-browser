@@ -918,6 +918,7 @@
     { id: "hair", label: "Hair" },
     { id: "shoulder", label: "Shoulder" },
     { id: "back", label: "Back" },
+    { id: "head", label: "Heads" },
     { id: "face", label: "Faces" },
     { id: "shirt", label: "Shirts" },
     { id: "pants", label: "Pants" },
@@ -976,6 +977,7 @@
       pants: Number(saved.pants) || 0,
       tshirt: Number(saved.tshirt) || 0,
       face: Number(saved.face) || 0,
+      head: Number(saved.head) || 0,
       accessories: accessories.map(Number).filter(Boolean),
       body,
     };
@@ -1008,7 +1010,7 @@
   // slot, any number of hats, plus the six BodyColors values.
   function avatarSpec() {
     const parts = [];
-    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+    for (const kind of ["head", "shirt", "pants", "tshirt", "face"]) {
       if (avatar[kind]) parts.push(kind + ":" + avatar[kind]);
     }
     for (const id of avatar.accessories) parts.push("acc:" + id);
@@ -1028,7 +1030,7 @@
 
   function renderWorn() {
     const worn = [];
-    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+    for (const kind of ["head", "shirt", "pants", "tshirt", "face"]) {
       const item = itemById(avatar[kind]);
       if (item) worn.push(item);
     }

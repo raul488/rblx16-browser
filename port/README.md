@@ -71,12 +71,13 @@ asset-delivery cookie settings used by the menu.
 python3 port/tools/fetch_catalog.py
 ```
 
-Downloads 2016-and-older clothing, hats, hair, shoulder/back accessories and
-classic faces from Roblox, plus their thumbnails, into `web/catalog/`
-(gitignored). Roblox only serves user-uploaded assets to a logged-in session,
-so pass `--cookie`, set `ROBLOX_COOKIE`, or keep the cookie the menu saves in
-`asset-cookie.txt`. The scraper also caches every mesh and texture the
-accessory models reference in `web/asset-cache/`, so they render offline.
+Downloads 2016-and-older clothing, hats, hair, shoulder/back accessories,
+classic heads and classic faces from Roblox, plus their thumbnails, into
+`web/catalog/` (gitignored). Roblox only serves user-uploaded assets to a
+logged-in session, so pass `--cookie`, set `ROBLOX_COOKIE`, or keep the cookie
+the menu saves in `asset-cookie.txt`. The scraper also caches every mesh and
+texture the accessory models reference in `web/asset-cache/`, so they render
+offline.
 
 ## Conventions
 
