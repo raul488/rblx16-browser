@@ -103,7 +103,6 @@ html,body{ height:100%; margin:0; overflow:hidden; background:#18354f;
 .btn:focus-visible{ outline:2px solid var(--blue); outline-offset:1px; }
 .btn:disabled{ opacity:.5; cursor:default; }
 .wornline{ margin:9px 0 0; font-size:12px; color:var(--muted); line-height:1.45; }
-.hintline{ margin:5px 0 0; font-size:12px; color:#516b80; line-height:1.45; }
 #playBtn{ display:block; width:100%; margin-top:13px; padding:11px 14px; border:1px solid #1f5a1e;
           background:linear-gradient(#35852f,#256428); color:#fff; font:inherit; font-size:16px;
           font-weight:700; letter-spacing:.4px; line-height:1.25; cursor:pointer; border-radius:2px;
@@ -177,9 +176,6 @@ details.panel .body{ padding:2px 14px 13px; border-top:1px solid #dde5ee; }
 #catalog .top .wornline{ color:#f0f7fd; font-size:12px; margin:0 0 0 6px; }
 #catSearch{ margin-left:auto; width:220px; padding:5px 8px; font-size:12px; border:1px solid #0d1727;
             background:#fff; border-radius:2px; outline:none; font-family:inherit; }
-#catalog .catHint{ display:flex; gap:8px; align-items:flex-start; padding:7px 16px; background:#fdf3d8;
-                   border-bottom:1px solid #e2cf9a; color:#6b4e12; font-size:12px; line-height:1.5; }
-#catalog .catHint code{ background:#f3e3bb; padding:0 3px; font-size:12px; }
 #catalog .top .btn{ white-space:nowrap; }
 #catalog .body{ flex:1; display:flex; min-height:0; }
 #catalog .side{ width:186px; flex:none; background:#dfe4ea; border-right:1px solid #c3ccd6;
@@ -246,7 +242,6 @@ details.panel .body{ padding:2px 14px 13px; border-top:1px solid #dde5ee; }
 @media (max-width:720px){
   #catalog .top{ gap:8px; padding:6px 10px; }
   #catalog .top .wornline{ display:none; }
-  #catalog .catHint{ font-size:12px; padding:6px 10px; }
   #catSearch{ width:120px; }
   #catalog .side{ width:132px; }
   #catalog .side select{ width:110px; }
@@ -298,7 +293,6 @@ details.panel .body{ padding:2px 14px 13px; border-top:1px solid #dde5ee; }
         <label class="lbl" for="userName">Play as</label>
         <input id="userName" maxlength="20" spellcheck="false" placeholder="Player1" autocomplete="off">
         <p class="wornline" id="wornLine">Not wearing anything yet.</p>
-        <p class="hintline">Catalog items need the local server and a Roblox cookie.</p>
 
         <button type="button" id="playBtn">Play</button>
         <div class="status" id="status" role="status" aria-live="polite"></div>
@@ -373,12 +367,6 @@ details.panel .body{ padding:2px 14px 13px; border-top:1px solid #dde5ee; }
     <span class="wornline" id="catWornLine"></span>
     <input id="catSearch" type="search" placeholder="Search the catalog" spellcheck="false">
     <button type="button" class="btn" id="catClose">Back to menu</button>
-  </div>
-  <div class="catHint">
-    <span><b>Needs the local server and a Roblox cookie.</b> Worn items download their meshes and
-      textures from Roblox, so the catalog only works when the site is served by
-      <code>python3 web/serve.py</code>. A static host cannot load them. Save a
-      <code>.ROBLOSECURITY</code> value under <b>Asset downloads</b> on the menu first.</span>
   </div>
   <div class="body">
     <div class="side">
