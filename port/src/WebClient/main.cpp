@@ -99,6 +99,35 @@ namespace {
     int g_characterAttempts = 0;
     bool g_recordingVideo = false;
     bool g_touchEnabled = false;
+
+    // The native input layer reuses one InputObject per mouse type
+    // (WindowsClient/UserInput::sendMouseEvent). GuiObject::draggingEnded
+    // compares the mouse-up object with the mouse-down object, so a fresh
+    // object per event never ends a GUI drag: the dragged backpack slot keeps
+    // following the cursor. Keep the same objects here.
+    struct MouseInputs {
+        shared_ptr<RBX::InputObject> buttons[3];
+        shared_ptr<RBX::InputObject> movement;
+        shared_ptr<RBX::InputObject> wheel;
+    };
+    MouseInputs g_mouseInputs;
+
+    shared_ptr<RBX::InputObject> updateMouseInput(
+        shared_ptr<RBX::InputObject>& input,
+        RBX::InputObject::UserInputType type,
+        RBX::InputObject::UserInputState state,
+        const G3D::Vector3& position,
+        const G3D::Vector3& delta) {
+        if (!input) {
+            input = RBX::Creatable<RBX::Instance>::create<RBX::InputObject>(
+                type, state, position, delta, g_dataModel.get());
+        } else {
+            input->setInputState(state);
+            input->setPosition(position);
+            input->setDelta(delta);
+        }
+        return input;
+    }
 }
 
 // Mirrors the desktop client: core-script print/warn and Lua errors go to the log.
@@ -784,11 +813,13 @@ EMSCRIPTEN_KEEPALIVE void rblx_mouse_button(int button, int x, int y, int isDown
     RBX::InputObject::UserInputType type = RBX::InputObject::TYPE_MOUSEBUTTON1;
     if (button == 2) type = RBX::InputObject::TYPE_MOUSEBUTTON2;
     else if (button == 1) type = RBX::InputObject::TYPE_MOUSEBUTTON3;
-    shared_ptr<RBX::InputObject> event = RBX::Creatable<RBX::Instance>::create<RBX::InputObject>(
-        type,
+    shared_ptr<RBX::InputObject>& slot =
+        g_mouseInputs.buttons[static_cast<int>(type) - static_cast<int>(RBX::InputObject::TYPE_MOUSEBUTTON1)];
+    shared_ptr<RBX::InputObject> event = updateMouseInput(
+        slot, type,
         isDown ? RBX::InputObject::INPUT_STATE_BEGIN : RBX::InputObject::INPUT_STATE_END,
         G3D::Vector3(static_cast<float>(x), static_cast<float>(y), 0),
-        G3D::Vector3(0, 0, 0), g_dataModel.get());
+        G3D::Vector3(0, 0, 0));
     uis->fireInputEvent(event, NULL);
 }
 
@@ -796,11 +827,12 @@ EMSCRIPTEN_KEEPALIVE void rblx_mouse_wheel(int x, int y, int delta) {
     if (!g_dataModel) return;
     RBX::UserInputService* uis = RBX::ServiceProvider::find<RBX::UserInputService>(g_dataModel.get());
     if (!uis) return;
-    shared_ptr<RBX::InputObject> event = RBX::Creatable<RBX::Instance>::create<RBX::InputObject>(
+    shared_ptr<RBX::InputObject> event = updateMouseInput(
+        g_mouseInputs.wheel,
         RBX::InputObject::TYPE_MOUSEWHEEL,
         RBX::InputObject::INPUT_STATE_CHANGE,
         G3D::Vector3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(delta)),
-        G3D::Vector3(0, 0, 0), g_dataModel.get());
+        G3D::Vector3(0, 0, 0));
     uis->fireInputEvent(event, NULL);
 }
 
@@ -808,11 +840,12 @@ EMSCRIPTEN_KEEPALIVE void rblx_mouse_move(int x, int y, int dx, int dy) {
     if (!g_dataModel) return;
     RBX::UserInputService* uis = RBX::ServiceProvider::find<RBX::UserInputService>(g_dataModel.get());
     if (!uis) return;
-    shared_ptr<RBX::InputObject> event = RBX::Creatable<RBX::Instance>::create<RBX::InputObject>(
+    shared_ptr<RBX::InputObject> event = updateMouseInput(
+        g_mouseInputs.movement,
         RBX::InputObject::TYPE_MOUSEMOVEMENT,
         RBX::InputObject::INPUT_STATE_CHANGE,
         G3D::Vector3(static_cast<float>(x), static_cast<float>(y), 0),
-        G3D::Vector3(static_cast<float>(dx), static_cast<float>(dy), 0), g_dataModel.get());
+        G3D::Vector3(static_cast<float>(dx), static_cast<float>(dy), 0));
     uis->fireInputEvent(event, NULL);
 }
 
@@ -834,6 +867,7 @@ EMSCRIPTEN_KEEPALIVE void rblx_stop() {
     if (g_view) { g_view->shutdown(); g_view.reset(); }
     RBX::DataModel::closeDataModel(g_dataModel);
     g_dataModel.reset();
+    g_mouseInputs = MouseInputs();
     RBX::Game::globalExit();
 }
 

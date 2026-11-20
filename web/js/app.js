@@ -666,8 +666,14 @@
       const p = toCanvas(e);
       heldButtons.add(e.button);
       // Deliver any coalesced motion from before the click before starting a
-      // drag; otherwise it is flushed after MouseButton2 down and the camera
-      // consumes that whole delta as a snap.
+      // drag. UserInputService processes button-down before queued movement in
+      // the same frame, so zero the delta for the camera button: otherwise the
+      // pan starts at the click position and then applies the pre-click delta,
+      // snapping the view.
+      if (e.button === 2) {
+        pending.dx = 0;
+        pending.dy = 0;
+      }
       flushMouse();
       if (e.button === 2) {
         rightDown = true;
