@@ -67,11 +67,14 @@
   }
 
   function renderPlaces() {
+    placeList.classList.remove("in");
+    const firstPaint = !placeList.childElementCount;
     placeList.innerHTML = "";
-    for (const p of places) {
+    for (const [i, p] of places.entries()) {
       const tile = document.createElement("button");
       tile.type = "button";
       tile.className = "place";
+      tile.style.setProperty("--i", Math.min(i, 10));
       tile.setAttribute("aria-pressed", p === selected ? "true" : "false");
       tile.title = p.name;
       const name = document.createElement("span");
@@ -96,6 +99,7 @@
     }
     $("placeCount").textContent = places.length
       ? places.length + (places.length === 1 ? " place" : " places") : "no places";
+    if (firstPaint && places.length) placeList.classList.add("in");
     // The button names the target so a mis-click cannot start the wrong game.
     playBtn.textContent = selected ? "Play " + selected.name : "Play";
     playBtn.title = selected ? "Play " + selected.name : "";
@@ -932,6 +936,7 @@
   ];
   // Hats, shoulder and back items are all wearable at once.
   const ACCESSORY_TYPES = ["hat", "hair", "shoulder", "back"];
+  const PAGE_SIZE = 120;   // roughly 20 desktop rows; keeps the DOM small
   const BODY_SLOTS = ["Head", "Left arm", "Right arm", "Torso", "Left leg", "Right leg"];
   const SLOT_SHORT = ["Head", "L arm", "R arm", "Torso", "L leg", "R leg"];
   let bodyPart = 0;
@@ -960,11 +965,14 @@
   const catalogPage = $("catalog");
   const catGrid = $("catGrid");
   const catNote = $("catNote");
+  const catTiles = new Map();   // item id -> { el, item }, for cheap worn toggles
   let catalogItems = null;
   let catalogCategory = "";
   let catalogQuery = "";
   let catalogCreator = "";
   let detailItem = null;
+  let catalogDirty = true;
+  let catalogPageNo = 0;
   let avatar = loadAvatar();
 
   function loadAvatar() {
@@ -1008,8 +1016,14 @@
       avatar[item.type] = isWorn(item) ? 0 : item.id;
     }
     saveAvatar();
-    renderCatalog();
+    markWornTiles();
     if (detailItem) renderDetail();
+  }
+
+  // A wear changes at most a couple of tiles; rebuilding 6,000 of them was the
+  // lag. Toggle the rendered tiles in place instead.
+  function markWornTiles() {
+    for (const { el, item } of catTiles.values()) el.classList.toggle("worn", isWorn(item));
   }
 
   // The engine applies this list to the local character: one item per clothing
@@ -1071,8 +1085,11 @@
     }
   }
 
-  function renderCatalog() {
+  function renderCatalog(refresh) {
     if (!catalogPage.classList.contains("open")) return;
+    const main = catalogPage.querySelector(".main");
+    const scroll = main.scrollTop;
+    if (refresh) catGrid.classList.remove("in");
     const cats = $("catCats");
     if (!cats.childElementCount) {
       for (const cat of CATEGORIES) {
@@ -1082,13 +1099,17 @@
         link.tabIndex = 0;
         link.addEventListener("click", () => {
           catalogCategory = cat.id;
-          renderCatalog();
+          catalogPageNo = 0;
+          catalogDirty = true;
+          renderCatalog(true);
         });
         link.addEventListener("keydown", (e) => {
           if (e.key !== "Enter" && e.key !== " ") return;
           e.preventDefault();
           catalogCategory = cat.id;
-          renderCatalog();
+          catalogPageNo = 0;
+          catalogDirty = true;
+          renderCatalog(true);
         });
         cats.appendChild(link);
       }
@@ -1096,11 +1117,18 @@
     for (const link of cats.children) link.classList.toggle("sel", link.dataset.id === catalogCategory);
 
     catGrid.innerHTML = "";
-    if (!catalogItems) return;
+    catTiles.clear();
+    if (refresh) {
+      void catGrid.offsetWidth;
+      catGrid.classList.add("in");
+    }
+    if (!catalogItems) { $("catPager").classList.remove("on"); main.scrollTop = scroll; return; }
     if (!catalogItems.length) {
+      $("catPager").classList.remove("on");
       catNote.style.display = "block";
       catNote.innerHTML = "No catalog was scraped yet. Run <code>python3 port/tools/fetch_catalog.py</code>" +
         " to build <code>web/catalog/</code> from the Roblox website.";
+      main.scrollTop = scroll;
       return;
     }
     catNote.style.display = "none";
@@ -1110,32 +1138,39 @@
       (!catalogCreator || it.creator === catalogCreator) &&
       (!query || it.name.toLowerCase().includes(query)));
     if (!shown.length) {
+      $("catPager").classList.remove("on");
       catNote.style.display = "block";
       catNote.textContent = "No items match that filter.";
+      main.scrollTop = scroll;
       return;
     }
-    for (const item of shown) {
+    // The catalog holds ~6,000 items. Render one page at a time so opening and
+    // wearing stay instant instead of laying out thousands of tiles.
+    const pages = Math.ceil(shown.length / PAGE_SIZE);
+    catalogPageNo = Math.max(0, Math.min(catalogPageNo, pages - 1));
+    const pager = $("catPager");
+    pager.classList.toggle("on", pages > 1);
+    $("catPrev").disabled = catalogPageNo === 0;
+    $("catNext").disabled = catalogPageNo >= pages - 1;
+    $("catPageLabel").textContent = "Page " + (catalogPageNo + 1) + " of " + pages +
+      " \u00b7 " + shown.length + " items";
+    const start = catalogPageNo * PAGE_SIZE;
+    const frag = document.createDocumentFragment();
+    for (const item of shown.slice(start, start + PAGE_SIZE)) {
       const tile = document.createElement("div");
       tile.className = "tile" + (isWorn(item) ? " worn" : "");
+      tile.dataset.id = String(item.id);
       const src = itemImage(item);
       const img = document.createElement(src ? "img" : "div");
       if (src) {
         img.loading = "lazy";
         img.src = src;
+        if (item.file) img.dataset.file = item.file;
       } else {
         img.textContent = (item.name || "?").slice(0, 1);
         img.style.cssText = "display:flex;align-items:center;justify-content:center;background:#e6ebf1;color:#7d8fa3;font-size:44px";
       }
       img.alt = "";
-      if (src && item.file) {
-        img.addEventListener("error", () => {
-          // Some items have no rendered thumbnail; the template/model still shows.
-          if (!img.dataset.fallback) {
-            img.dataset.fallback = "1";
-            img.src = "catalog/" + item.file;
-          }
-        });
-      }
       const nm = document.createElement("div");
       nm.className = "nm";
       nm.textContent = item.name;
@@ -1147,15 +1182,17 @@
       pr.textContent = "Your soul";
       tile.append(img, nm, cr, pr);
       tile.tabIndex = 0;
-      tile.addEventListener("click", () => openDetail(item));
-      tile.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openDetail(item);
-        }
-      });
-      catGrid.appendChild(tile);
+      catTiles.set(tile.dataset.id, { el: tile, item });
+      frag.appendChild(tile);
     }
+    catGrid.appendChild(frag);
+    main.scrollTop = refresh ? 0 : scroll;
+    catalogDirty = false;
+  }
+
+  function tileFromEvent(e) {
+    const el = e.target instanceof Element ? e.target.closest(".tile") : null;
+    return el ? catTiles.get(el.dataset.id) : null;
   }
 
   function renderDetail() {
@@ -1199,6 +1236,7 @@
       select.appendChild(option);
     }
     renderWorn();
+    catalogDirty = true;
     renderCatalog();
   }
 
@@ -1261,7 +1299,7 @@
   function openCatalog() {
     catalogPage.classList.add("open");
     renderWorn();
-    renderCatalog();
+    if (catalogDirty) renderCatalog();
     loadCatalog();
   }
 
@@ -1283,18 +1321,59 @@
     $("catClose").addEventListener("click", closeCatalog);
     $("catSearch").addEventListener("input", () => {
       catalogQuery = $("catSearch").value.trim();
-      renderCatalog();
+      catalogPageNo = 0;
+      catalogDirty = true;
+      renderCatalog(true);
     });
     $("catCreator").addEventListener("change", () => {
       catalogCreator = $("catCreator").value;
-      renderCatalog();
+      catalogPageNo = 0;
+      catalogDirty = true;
+      renderCatalog(true);
+    });
+    $("catPrev").addEventListener("click", () => {
+      if (catalogPageNo === 0) return;
+      catalogPageNo--;
+      renderCatalog(true);
+    });
+    $("catNext").addEventListener("click", () => {
+      catalogPageNo++;
+      renderCatalog(true);
     });
     $("catWear").addEventListener("click", () => { if (detailItem) wear(detailItem); });
     $("catDetailClose").addEventListener("click", closeDetail);
     $("catDetail").addEventListener("click", (e) => {
       if (e.target === $("catDetail")) closeDetail();
     });
+    // One delegated listener beats 12,000 of them on a 6,000-tile grid.
+    catGrid.addEventListener("click", (e) => {
+      const entry = tileFromEvent(e);
+      if (entry) openDetail(entry.item);
+    });
+    catGrid.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const entry = tileFromEvent(e);
+      if (!entry) return;
+      e.preventDefault();
+      openDetail(entry.item);
+    });
+    catGrid.addEventListener("error", (e) => {
+      // Some items have no rendered thumbnail; the template/model still shows.
+      const img = e.target;
+      if (!img || img.tagName !== "IMG" || !img.dataset.file || img.dataset.fallback) return;
+      img.dataset.fallback = "1";
+      img.src = "catalog/" + img.dataset.file;
+    }, true);
     document.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || !!(e.target && e.target.isContentEditable);
+      if (!playing && !typing && !e.ctrlKey && !e.metaKey && !e.altKey &&
+          (e.key === "c" || e.key === "C")) {
+        e.preventDefault();
+        if (catalogPage.classList.contains("open")) closeCatalog();
+        else openCatalog();
+        return;
+      }
       if (e.key !== "Escape") return;
       if ($("catDetail").classList.contains("open")) closeDetail();
       else if (catalogPage.classList.contains("open")) closeCatalog();
