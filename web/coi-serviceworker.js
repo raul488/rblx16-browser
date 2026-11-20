@@ -7,8 +7,9 @@
  *
  * It also answers /asset/?id=N from web/assets/<id>.gz, the packed copy of
  * every mesh and texture the bundled places and catalog accessories use.
- * Only the items a player actually loads are fetched, and responses are cached
- * so later visits (and offline) are instant.
+ * Ids outside the pack are fetched through the Worker from asset-proxy.json
+ * (unless a local server is answering). Responses are cached so later visits
+ * (and offline) are instant.
  */
 const ASSET_CACHE = "rblx2016-assets";
 let assetIndex = null;
