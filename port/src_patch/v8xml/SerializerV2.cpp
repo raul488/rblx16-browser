@@ -37,8 +37,18 @@ private:
 		const IIDREF* idref;
 	};
 	std::list<IDREFBinding> idrefBindings;
+	// Deferred bindings only hold raw owner pointers.  Resolving one ref can
+	// destroy another owner (Workspace::setCurrentCamera deletes stale Camera
+	// children), so keep every owner alive until the bindings are applied.
+	std::vector<boost::shared_ptr<Instance> > bindingOwners;
 
 public:
+
+	/*override*/ void announceIDREF(const XmlNameValuePair* valueIDREF, Reflection::DescribedBase* propertyOwner, const IIDREF* idref) {
+		if (Instance* owner = dynamic_cast<Instance*>(propertyOwner))
+			bindingOwners.push_back(shared_from(owner));
+		Super::announceIDREF(valueIDREF, propertyOwner, idref);
+	}
 
 	virtual bool processID(const XmlNameValuePair* valueID, Reflection::DescribedBase* source) {
 		if (!Super::processID(valueID, source)) {
