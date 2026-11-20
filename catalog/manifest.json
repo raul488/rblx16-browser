@@ -56402,6 +56402,186 @@
    "created": "2026-11-18",
    "file": "item/900001",
    "thumb": "thumbs/900001.png"
+  },
+  {
+   "id": 6340170,
+   "type": "head",
+   "name": "Barrel",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340170",
+   "thumb": "thumbs/6340170.png"
+  },
+  {
+   "id": 6340101,
+   "type": "head",
+   "name": "Blockhead",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340101",
+   "thumb": "thumbs/6340101.png"
+  },
+  {
+   "id": 6340258,
+   "type": "head",
+   "name": "Cool Thing",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340258",
+   "thumb": "thumbs/6340258.png"
+  },
+  {
+   "id": 6340192,
+   "type": "head",
+   "name": "Cylinder Madness",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340192",
+   "thumb": "thumbs/6340192.png"
+  },
+  {
+   "id": 6340161,
+   "type": "head",
+   "name": "Eraser Head",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340161",
+   "thumb": "thumbs/6340161.png"
+  },
+  {
+   "id": 6340208,
+   "type": "head",
+   "name": "Flat Top",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340208",
+   "thumb": "thumbs/6340208.png"
+  },
+  {
+   "id": 6340141,
+   "type": "head",
+   "name": "Hex",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340141",
+   "thumb": "thumbs/6340141.png"
+  },
+  {
+   "id": 6340133,
+   "type": "head",
+   "name": "Octoblox",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340133",
+   "thumb": "thumbs/6340133.png"
+  },
+  {
+   "id": 6340269,
+   "type": "head",
+   "name": "Perfection",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340269",
+   "thumb": "thumbs/6340269.png"
+  },
+  {
+   "id": 6340154,
+   "type": "head",
+   "name": "ROX BOX",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340154",
+   "thumb": "thumbs/6340154.png"
+  },
+  {
+   "id": 6340198,
+   "type": "head",
+   "name": "Roll",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340198",
+   "thumb": "thumbs/6340198.png"
+  },
+  {
+   "id": 6340213,
+   "type": "head",
+   "name": "Roundy",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340213",
+   "thumb": "thumbs/6340213.png"
+  },
+  {
+   "id": 6340227,
+   "type": "head",
+   "name": "Trim",
+   "creator": "Roblox",
+   "created": "2008-12-17",
+   "file": "item/6340227",
+   "thumb": "thumbs/6340227.png"
+  },
+  {
+   "id": 8330576,
+   "type": "head",
+   "name": "Diamond",
+   "creator": "Roblox",
+   "created": "2009-02-27",
+   "file": "item/8330576",
+   "thumb": "thumbs/8330576.png"
+  },
+  {
+   "id": 8330389,
+   "type": "head",
+   "name": "Fat Head",
+   "creator": "Roblox",
+   "created": "2009-02-27",
+   "file": "item/8330389",
+   "thumb": "thumbs/8330389.png"
+  },
+  {
+   "id": 8330578,
+   "type": "head",
+   "name": "Peabrain",
+   "creator": "Roblox",
+   "created": "2009-02-27",
+   "file": "item/8330578",
+   "thumb": "thumbs/8330578.png"
+  },
+  {
+   "id": 86498048,
+   "type": "head",
+   "name": "Man Head",
+   "creator": "Roblox",
+   "created": "2012-07-12",
+   "file": "item/86498048",
+   "thumb": "thumbs/86498048.png"
+  },
+  {
+   "id": 86498113,
+   "type": "head",
+   "name": "Woman Head",
+   "creator": "Roblox",
+   "created": "2012-07-12",
+   "file": "item/86498113",
+   "thumb": "thumbs/86498113.png"
+  },
+  {
+   "id": 100302996,
+   "type": "head",
+   "name": "iBot Head",
+   "creator": "Roblox",
+   "created": "2012-12-11",
+   "file": "item/100302996",
+   "thumb": "thumbs/100302996.png"
+  },
+  {
+   "id": 134082579,
+   "type": "head",
+   "name": "Headless Head",
+   "creator": "Roblox",
+   "created": "2013-10-31",
+   "file": "item/134082579",
+   "thumb": "thumbs/134082579.png"
   }
  ]
 }

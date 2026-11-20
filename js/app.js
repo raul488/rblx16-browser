@@ -666,8 +666,14 @@
       const p = toCanvas(e);
       heldButtons.add(e.button);
       // Deliver any coalesced motion from before the click before starting a
-      // drag; otherwise it is flushed after MouseButton2 down and the camera
-      // consumes that whole delta as a snap.
+      // drag. UserInputService processes button-down before queued movement in
+      // the same frame, so zero the delta for the camera button: otherwise the
+      // pan starts at the click position and then applies the pre-click delta,
+      // snapping the view.
+      if (e.button === 2) {
+        pending.dx = 0;
+        pending.dy = 0;
+      }
       flushMouse();
       if (e.button === 2) {
         rightDown = true;
@@ -918,6 +924,7 @@
     { id: "hair", label: "Hair" },
     { id: "shoulder", label: "Shoulder" },
     { id: "back", label: "Back" },
+    { id: "head", label: "Heads" },
     { id: "face", label: "Faces" },
     { id: "shirt", label: "Shirts" },
     { id: "pants", label: "Pants" },
@@ -976,6 +983,7 @@
       pants: Number(saved.pants) || 0,
       tshirt: Number(saved.tshirt) || 0,
       face: Number(saved.face) || 0,
+      head: Number(saved.head) || 0,
       accessories: accessories.map(Number).filter(Boolean),
       body,
     };
@@ -1008,7 +1016,7 @@
   // slot, any number of hats, plus the six BodyColors values.
   function avatarSpec() {
     const parts = [];
-    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+    for (const kind of ["head", "shirt", "pants", "tshirt", "face"]) {
       if (avatar[kind]) parts.push(kind + ":" + avatar[kind]);
     }
     for (const id of avatar.accessories) parts.push("acc:" + id);
@@ -1028,7 +1036,7 @@
 
   function renderWorn() {
     const worn = [];
-    for (const kind of ["shirt", "pants", "tshirt", "face"]) {
+    for (const kind of ["head", "shirt", "pants", "tshirt", "face"]) {
       const item = itemById(avatar[kind]);
       if (item) worn.push(item);
     }
