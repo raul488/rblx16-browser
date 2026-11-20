@@ -90,6 +90,9 @@ namespace {
 
 namespace RBX {
 	extern void ThrowLastError(const char* message);
+	// Optional Cloudflare Worker proxy for /asset on static hosts (defined in
+	// WebClient/main.cpp with C linkage).
+	extern "C" const char* rblx2016_asset_proxy;
 
 	const char* const sContentProvider = "ContentProvider";
 
@@ -693,7 +696,6 @@ namespace RBX {
 
 		// A static host has no /asset endpoint; route those downloads through
 		// the configured asset proxy instead (it holds the Roblox session).
-		extern const char* rblx2016_asset_proxy;
 		if (rblx2016_asset_proxy && *rblx2016_asset_proxy) {
 			const std::string s = id.toString();
 			size_t assetPath = s.find("/asset/");
