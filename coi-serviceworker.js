@@ -12,6 +12,8 @@
  */
 const ASSET_CACHE = "rblx2016-assets";
 let assetIndex = null;
+let proxyBase;
+let localServer;
 
 async function packedAssetIds() {
   if (assetIndex) return assetIndex;
@@ -75,6 +77,58 @@ async function servePackedAsset(event) {
   }
 }
 
+async function assetProxyBase() {
+  if (proxyBase !== undefined) return proxyBase;
+  try {
+    const response = await fetch(new URL("asset-proxy.json", self.registration.scope), { cache: "no-cache" });
+    proxyBase = response.ok ? ((await response.json()).base || "") : "";
+  } catch (_) {
+    proxyBase = "";
+  }
+  return proxyBase;
+}
+
+async function hasLocalServer() {
+  if (localServer !== undefined) return localServer;
+  try {
+    localServer = (await fetch(new URL("cookie", self.registration.scope), { cache: "no-store" })).ok;
+  } catch (_) {
+    localServer = false;
+  }
+  return localServer;
+}
+
+// The pack covers the bundled places and the old catalog; anything else
+// (new hats, updated meshes) comes from the Worker that holds the session.
+async function serveProxiedAsset(event) {
+  const url = new URL(event.request.url);
+  const path = url.pathname.replace(/\/+$/, "");
+  if (!path.endsWith("/asset")) return null;
+  const id = url.searchParams.get("id") || url.searchParams.get("assetId");
+  if (!id || !/^\d{1,20}$/.test(id)) return null;
+  if (await hasLocalServer()) return null;
+  const base = await assetProxyBase();
+  if (!base) return null;
+  const cache = await caches.open(ASSET_CACHE);
+  const cached = await cache.match(event.request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(base.replace(/\/+$/, "") + "/asset?id=" + id);
+    if (!response.ok) return null;
+    const body = await response.arrayBuffer();
+    const stored = new Response(body, {
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
+    await cache.put(event.request, stored.clone());
+    return stored;
+  } catch (_) {
+    return null;
+  }
+}
+
 if (typeof window === "undefined") {
   self.addEventListener("install", () => self.skipWaiting());
   self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
@@ -86,6 +140,8 @@ if (typeof window === "undefined") {
         try {
           const packed = await servePackedAsset(event);
           if (packed) return withIsolationHeaders(packed);
+          const proxied = await serveProxiedAsset(event);
+          if (proxied) return withIsolationHeaders(proxied);
           return withIsolationHeaders(await fetch(request));
         } catch (_) {
           return Response.error();

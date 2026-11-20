@@ -407,8 +407,11 @@
         mod.ccall("rblx_set_unlock_fps", null, ["number"], [unlockFps.checked ? 1 : 0]);
       } catch (_) {}
       applyRenderOptions(mod);
-      // Hosted builds have no /asset endpoint; a small Worker does it instead.
-      if (!window.__rblxLocalServer) {
+      // Static hosts have no /asset endpoint. Keep the same-origin URL when
+      // the service worker controls the page, so it can serve the packed
+      // assets and only fall back to the proxy for the rest.
+      if (!window.__rblxLocalServer &&
+          !(navigator.serviceWorker && navigator.serviceWorker.controller)) {
         try {
           const response = await fetch("asset-proxy.json", { cache: "no-store" });
           if (response.ok) {
